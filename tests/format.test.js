@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { countdown, percentText, barText, minutesAgo } from "../utils/format.js";
+import { countdown, percentText, barText, minutesAgo, windowKey, errorMessage, moneyText } from "../utils/format.js";
 
 const M = 60000;
 
@@ -23,5 +23,30 @@ describe("format", () => {
   it("counts minutes since a fetch", () => {
     expect(minutesAgo(0, 30 * 1000)).toBe(0);
     expect(minutesAgo(0, 5 * M + 1)).toBe(5);
+  });
+  it("maps a window to its i18n key", () => {
+    expect(windowKey({ id: "session" })).toBe("window.session");
+    expect(windowKey({ id: "weekly-opus" })).toBe("window.weekly-opus");
+    expect(windowKey({ id: "period", periodType: "monthly" })).toBe("window.period-monthly");
+    expect(windowKey({ id: "period", periodType: "weekly" })).toBe("window.period-weekly");
+    expect(windowKey({ id: "period" })).toBe("window.period-weekly");
+  });
+  it("maps a request error to an i18n key and its vars", () => {
+    expect(errorMessage(null, "claude", 0)).toBe(null);
+    expect(errorMessage({ error: "" }, "claude", 0)).toBe(null);
+    expect(errorMessage({ error: "auth" }, "claude", 0)).toEqual({ key: "error.claude-expired", vars: null });
+    expect(errorMessage({ error: "auth" }, "grok", 0)).toEqual({ key: "error.grok-login", vars: null });
+    expect(errorMessage({ error: "http", code: 503 }, "grok", 0)).toEqual({ key: "error.http", vars: { code: 503 } });
+    expect(errorMessage({ error: "rate-limited", retryAt: 90 * 1000 }, "claude", 0)).toEqual({ key: "error.rate-limited", vars: { n: 2 } });
+    expect(errorMessage({ error: "rate-limited", retryAt: 0 }, "claude", 5 * M)).toEqual({ key: "error.rate-limited", vars: { n: 0 } });
+    expect(errorMessage({ error: "network" }, "claude", 0)).toEqual({ key: "error.network", vars: null });
+  });
+  it("formats extra usage money with two decimals and the given separator", () => {
+    const extra = { used: 33.5, limit: 90, currency: "BRL" };
+    expect(moneyText(extra, ",")).toBe("33,50 / 90,00 BRL");
+    expect(moneyText(extra, ".")).toBe("33.50 / 90.00 BRL");
+    expect(moneyText({ used: 0.1 + 0.2, limit: 5, currency: "" }, ".")).toBe("0.30 / 5.00");
+    expect(moneyText({ used: 1, limit: 2, currency: "USD" })).toBe("1.00 / 2.00 USD");
+    expect(moneyText(null, ",")).toBe("");
   });
 });
