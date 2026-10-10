@@ -1,0 +1,25 @@
+{
+  "provider": { "claude": "Claude Code", "grok": "Grok" },
+  "window": {
+    "session": "Sessão (5h)", "weekly": "Semanal", "weekly-opus": "Semanal Opus",
+    "weekly-sonnet": "Semanal Sonnet", "period-weekly": "Semanal", "period-monthly": "Mensal",
+    "extra": "Uso extra"
+  },
+  "pace": { "ahead": "{n} pts à frente", "behind": "{n} pts atrás", "on": "no ritmo" },
+  "panel": {
+    "title": "Uso de IA", "refresh": "Atualizar", "updated": "atualizado há {n} min",
+    "updated-now": "atualizado agora", "stale": "desatualizado", "resets": "reinicia em {t}", "no-data": "Sem dados ainda"
+  },
+  "error": {
+    "claude-login": "Rode `claude` para entrar", "claude-expired": "Token do Claude expirou: abra o `claude` para renovar",
+    "grok-login": "Rode `grok login`", "grok-format": "Formato inesperado do billing do Grok",
+    "network": "Erro de rede", "http": "HTTP {code}", "rate-limited": "Limite de requisições, nova tentativa em {n} min",
+    "parse": "Resposta inesperada"
+  },
+  "notify": { "title": "{provider}: {window} em {n}%", "body": "Reinicia em {t}" },
+  "settings": {
+    "bar-provider": "Provedor na barra", "bar-provider-desc": "O clique do meio no widget também troca.",
+    "poll": "Atualizar a cada (minutos)", "threshold": "Avisar em (%)", "threshold-desc": "0 desliga os avisos.",
+    "user-agent": "User-Agent do Claude", "user-agent-desc": "Precisa parecer um Claude Code CLI publicado, senão o endpoint limita as requisições."
+  }
+}

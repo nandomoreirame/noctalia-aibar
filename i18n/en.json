@@ -1,0 +1,25 @@
+{
+  "provider": { "claude": "Claude Code", "grok": "Grok" },
+  "window": {
+    "session": "Session (5h)", "weekly": "Weekly", "weekly-opus": "Weekly Opus",
+    "weekly-sonnet": "Weekly Sonnet", "period-weekly": "Weekly", "period-monthly": "Monthly",
+    "extra": "Extra usage"
+  },
+  "pace": { "ahead": "{n} pts ahead", "behind": "{n} pts behind", "on": "on pace" },
+  "panel": {
+    "title": "AI usage", "refresh": "Refresh", "updated": "updated {n} min ago",
+    "updated-now": "updated now", "stale": "stale", "resets": "resets in {t}", "no-data": "No data yet"
+  },
+  "error": {
+    "claude-login": "Run `claude` to log in", "claude-expired": "Claude token expired: open `claude` to renew it",
+    "grok-login": "Run `grok login`", "grok-format": "Unexpected Grok billing format",
+    "network": "Network error", "http": "HTTP {code}", "rate-limited": "Rate limited, retrying in {n} min",
+    "parse": "Unexpected response"
+  },
+  "notify": { "title": "{provider}: {window} at {n}%", "body": "Resets in {t}" },
+  "settings": {
+    "bar-provider": "Provider in the bar", "bar-provider-desc": "Middle click on the widget also switches it.",
+    "poll": "Refresh every (minutes)", "threshold": "Notify at (%)", "threshold-desc": "0 turns notifications off.",
+    "user-agent": "Claude User-Agent", "user-agent-desc": "Must look like a published Claude Code CLI or the endpoint rate-limits."
+  }
+}
