@@ -26,7 +26,12 @@ Item {
   readonly property string iconName: provider === "grok" ? "brand-x" : "asterisk"
   readonly property string barLabel: Format.barText(win, nowMs())
   readonly property string providerName: tr("provider." + provider)
-  readonly property color fill: usageStatus === "critical" ? Color.mError : usageStatus === "ahead" ? Color.mTertiary : Color.mPrimary
+  // The panel remembers the item that opened it, so this follows open/close from any path.
+  readonly property bool panelOpen: PanelService.openedPanel !== null && PanelService.openedPanel.buttonItem === root
+  readonly property bool highlighted: mouseArea.containsMouse || panelOpen
+  readonly property color foreground: highlighted ? Color.mOnHover : Color.mOnSurface
+  readonly property color track: Qt.alpha(foreground, highlighted ? 0.3 : 0.15)
+  readonly property color fill: highlighted ? Color.mOnHover : usageStatus === "critical" ? Color.mError : usageStatus === "ahead" ? Color.mTertiary : Color.mPrimary
   readonly property real fraction: {
     const p = win && typeof win.percent === "number" ? win.percent : 0;
     return Math.min(100, Math.max(0, p)) / 100;
@@ -87,7 +92,7 @@ Item {
     width: root.implicitWidth
     height: root.implicitHeight
     radius: Style.radiusL
-    color: mouseArea.containsMouse ? Color.mHover : Style.capsuleColor
+    color: root.highlighted ? Color.mHover : Style.capsuleColor
     border.width: root.activeFocus ? Math.max(2, Style.borderS) : 0
     border.color: Color.mPrimary
 
@@ -100,14 +105,14 @@ Item {
       NIcon {
         icon: root.iconName
         applyUiScale: false
-        color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
+        color: root.foreground
       }
 
       NText {
         text: root.barLabel
         pointSize: Style.barFontSize
         font.weight: Style.fontWeightSemiBold
-        color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
+        color: root.foreground
         opacity: root.usage && root.usage.stale ? 0.6 : 1
       }
 
@@ -115,7 +120,7 @@ Item {
         width: Math.round(40 * Style.uiScaleRatio)
         height: Math.round(4 * Style.uiScaleRatio)
         radius: height / 2
-        color: Qt.alpha(Color.mOnSurface, 0.15)
+        color: root.track
         anchors.verticalCenter: parent.verticalCenter
 
         Rectangle {
@@ -137,7 +142,7 @@ Item {
         anchors.horizontalCenter: parent.horizontalCenter
         icon: root.iconName
         applyUiScale: false
-        color: mouseArea.containsMouse ? Color.mOnHover : Color.mOnSurface
+        color: root.foreground
       }
 
       Rectangle {
@@ -145,7 +150,7 @@ Item {
         width: Math.round(40 * Style.uiScaleRatio)
         height: Math.round(4 * Style.uiScaleRatio)
         radius: height / 2
-        color: Qt.alpha(Color.mOnSurface, 0.15)
+        color: root.track
 
         Rectangle {
           width: parent.width * root.fraction
@@ -164,14 +169,16 @@ Item {
     cursorShape: Qt.PointingHandCursor
     acceptedButtons: Qt.LeftButton | Qt.MiddleButton
 
-    onEntered: if (root.tooltipText !== "") TooltipService.show(root, root.tooltipText, BarService.getTooltipDirection(root.screen?.name))
+    onEntered: if (root.tooltipText !== "" && !root.panelOpen) TooltipService.show(root, root.tooltipText, BarService.getTooltipDirection(root.screen?.name))
     onExited: TooltipService.hide(root)
 
     onClicked: mouse => {
       if (mouse.button === Qt.MiddleButton && root.main)
         root.main.toggleBarProvider();
-      else if (root.pluginApi)
+      else if (root.pluginApi) {
+        TooltipService.hide(root);
         root.pluginApi.togglePanel(root.screen, root);
+      }
     }
   }
 }
