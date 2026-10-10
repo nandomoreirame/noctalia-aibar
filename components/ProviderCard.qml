@@ -2,11 +2,12 @@ import QtQuick
 import QtQuick.Layouts
 import qs.Commons
 import qs.Widgets
+import "ui"
 import "../utils/pace.js" as Pace
 import "../utils/format.js" as Format
 
 // One provider: header, a row per window, extra usage or products, and the error.
-NBox {
+Card {
   id: root
 
   property string provider: "claude"
@@ -23,8 +24,10 @@ NBox {
     return plan.charAt(0).toUpperCase() + plan.slice(1);
   }
 
+  readonly property int padding: Math.round(12 * Style.uiScaleRatio)
+
   Layout.fillWidth: true
-  implicitHeight: body.implicitHeight + Style.marginM * 2
+  implicitHeight: body.implicitHeight + padding * 2
 
   function nowMs() {
     return main && main.clockNow ? main.clockNow.getTime() : Date.now();
@@ -86,10 +89,10 @@ NBox {
 
   Column {
     id: body
-    x: Style.marginM
-    y: Style.marginM
-    width: parent.width - Style.marginM * 2
-    spacing: Style.marginS
+    x: root.padding
+    y: root.padding
+    width: parent.width - root.padding * 2
+    spacing: Math.round(8 * Style.uiScaleRatio)
 
     RowLayout {
       width: parent.width
@@ -130,7 +133,7 @@ NBox {
       }
 
       Rectangle {
-        visible: root.usage && root.usage.stale
+        visible: !!(root.usage && root.usage.stale)
         radius: height / 2
         color: Qt.alpha(Color.mError, 0.18)
         implicitWidth: staleLabel.implicitWidth + Style.marginS * 2
@@ -173,7 +176,7 @@ NBox {
       }
 
       UsageRow {
-        visible: root.snapshot && root.snapshot.extra
+        visible: !!(root.snapshot && root.snapshot.extra)
         width: parent.width
         label: root.tr("window.extra")
         percent: root.snapshot && root.snapshot.extra ? root.snapshot.extra.percent : null

@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import qs.Commons
 import qs.Widgets
 import "components"
+import "components/ui"
 
 // Both providers, independent of which one the bar is showing.
 Item {
@@ -14,7 +15,11 @@ Item {
   readonly property bool allowAttach: true
   readonly property var main: pluginApi?.mainInstance ?? null
 
-  property real contentPreferredWidth: 420 * Style.uiScaleRatio
+  readonly property int panelMargin: Math.round(10 * Style.uiScaleRatio)
+
+  property real contentPreferredWidth: 380 * Style.uiScaleRatio
+  // Sized to the cards; without it SmartPanel falls back to its tall default.
+  property real contentPreferredHeight: layout.implicitHeight + panelMargin * 2
 
   anchors.fill: parent
 
@@ -30,38 +35,32 @@ Item {
     color: "transparent"
 
     ColumnLayout {
-      anchors.fill: parent
-      anchors.margins: Style.marginM
-      spacing: Style.marginM
+      id: layout
+      anchors.top: parent.top
+      anchors.left: parent.left
+      anchors.right: parent.right
+      anchors.margins: root.panelMargin
+      spacing: Math.round(8 * Style.uiScaleRatio)
 
       RowLayout {
         Layout.fillWidth: true
+        Layout.leftMargin: Math.round(4 * Style.uiScaleRatio)
         spacing: Style.marginS
 
         NText {
           text: root.tr("panel.title")
           font.weight: Style.fontWeightSemiBold
-          pointSize: Style.fontSizeL
+          pointSize: Style.fontSizeM
           color: Color.mOnSurface
           Layout.fillWidth: true
         }
 
-        NIconButton {
+        PillButton {
           icon: "refresh"
+          busy: (root.main?.claude.inFlight ?? false) || (root.main?.grok.inFlight ?? false)
+          enabled: !busy
           tooltipText: root.tr("panel.refresh")
-          Accessible.role: Accessible.Button
-          Accessible.name: root.tr("panel.refresh")
-          activeFocusOnTab: true
-          colorBorder: activeFocus ? Color.mPrimary : Color.mOutline
           onClicked: root.main?.refresh()
-
-          Keys.onPressed: function (event) {
-            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
-              if (root.main)
-                root.main.refresh();
-              event.accepted = true;
-            }
-          }
         }
       }
 
