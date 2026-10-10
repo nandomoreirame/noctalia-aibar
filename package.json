@@ -1,0 +1,9 @@
+{
+  "name": "noctalia-aibar",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": { "test": "vitest run" },
+  "devDependencies": { "vitest": "^2.1.0" }
+}
