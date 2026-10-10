@@ -4,6 +4,8 @@ A [Noctalia Shell](https://github.com/noctalia-dev/noctalia) plugin that shows
 Claude Code and Grok (SuperGrok / Grok Build) plan usage in the bar and in a
 panel: percent, reset countdown and a progress bar.
 
+![AI Bar panel with Claude Code and Grok usage](screenshots/panel.png)
+
 > [!IMPORTANT]
 > AI Bar is a **Noctalia Shell v4** plugin (QML, `manifest.json`), tested on
 > **noctalia-shell 4.7.7**. It does **not** run on Noctalia v5, whose plugin system
