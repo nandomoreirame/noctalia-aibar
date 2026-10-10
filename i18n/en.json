@@ -16,6 +16,7 @@
     "network": "Network error", "http": "HTTP {code}", "rate-limited": "Rate limited, retrying in {n} min",
     "parse": "Unexpected response"
   },
+  "format": { "decimal": "." },
   "notify": { "title": "{provider}: {window} at {n}%", "body": "Resets in {t}" },
   "settings": {
     "bar-provider": "Provider in the bar", "bar-provider-desc": "Middle click on the widget also switches it.",

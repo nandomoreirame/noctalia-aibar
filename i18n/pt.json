@@ -16,6 +16,7 @@
     "network": "Erro de rede", "http": "HTTP {code}", "rate-limited": "Limite de requisições, nova tentativa em {n} min",
     "parse": "Resposta inesperada"
   },
+  "format": { "decimal": "," },
   "notify": { "title": "{provider}: {window} em {n}%", "body": "Reinicia em {t}" },
   "settings": {
     "bar-provider": "Provedor na barra", "bar-provider-desc": "O clique do meio no widget também troca.",

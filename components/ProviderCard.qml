@@ -40,9 +40,7 @@ Card {
   }
 
   function windowName(w) {
-    if (w.id === "period")
-      return tr("window.period-" + (w.periodType === "monthly" ? "monthly" : "weekly"));
-    return tr("window." + w.id);
+    return tr(Format.windowKey(w));
   }
 
   function detailLine(w) {
@@ -66,25 +64,12 @@ Card {
   }
 
   function errorText() {
-    if (!usage || !usage.error)
-      return "";
-    if (usage.error === "auth")
-      return tr(provider === "grok" ? "error.grok-login" : "error.claude-expired");
-    if (usage.error === "http")
-      return tr("error.http", { code: usage.code });
-    if (usage.error === "rate-limited") {
-      const left = usage.retryAt - nowMs();
-      return tr("error.rate-limited", { n: Math.max(0, Math.ceil(left / 60000)) });
-    }
-    return tr("error." + usage.error);
+    const msg = Format.errorMessage(usage, provider, nowMs());
+    return msg ? tr(msg.key, msg.vars) : "";
   }
 
   function extraText() {
-    const extra = snapshot ? snapshot.extra : null;
-    if (!extra)
-      return "";
-    const currency = extra.currency ? " " + extra.currency : "";
-    return extra.used + "/" + extra.limit + currency;
+    return Format.moneyText(snapshot ? snapshot.extra : null, tr("format.decimal"));
   }
 
   Column {
