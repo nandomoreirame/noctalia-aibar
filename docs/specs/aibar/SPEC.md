@@ -134,6 +134,8 @@ reusing its code. Personal use only: no registry publishing goal.
 - **AD-004 One normalized snapshot.** Both parsers return
   `{ provider, plan, windows: [{ id, label, percent, start, end }], extra?, products?, fetchedAt }`
   so bar, tooltip, panel and notifications share one shape.
+- **AD-006 Daybar UI kit copy.** `components/ui/` is copied from Daybar (decided
+  2026-10-10 while planning gistbar): same look and fine-tuning, no shared module.
 - **AD-005 Same scaffold as Daybar.** `vitest.config.js` QML-library transform,
   column-0 top-level declarations, `.pragma library`, `.import`.
 
