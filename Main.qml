@@ -145,9 +145,11 @@ Item {
     });
   }
 
+  // Re-read the credential files instead of trusting the cached text: a CLI
+  // login can replace the file in a way the watcher misses. onLoaded polls.
   function refresh() {
-    pollClaude();
-    pollGrok();
+    claudeFile.reload();
+    grokFile.reload();
   }
 
   function toggleBarProvider() {
@@ -163,6 +165,7 @@ Item {
     blockLoading: false
     watchChanges: true
     printErrors: false
+    onFileChanged: reload()
     onLoaded: root.pollClaude()
     onLoadFailed: root.pollClaude()
   }
@@ -173,6 +176,7 @@ Item {
     blockLoading: false
     watchChanges: true
     printErrors: false
+    onFileChanged: reload()
     onLoaded: root.pollGrok()
     onLoadFailed: root.pollGrok()
   }
