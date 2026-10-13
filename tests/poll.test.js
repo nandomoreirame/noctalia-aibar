@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createState, canRequest, begin, succeed, fail, BACKOFF_MS } from "../utils/poll.js";
+import { createState, canRequest, begin, succeed, fail, BACKOFF_MS, REQUEST_TIMEOUT_MS } from "../utils/poll.js";
 
 const SNAP = { provider: "claude", windows: [{ id: "session", percent: 1 }] };
 
@@ -36,5 +36,18 @@ describe("poll", () => {
 
   it("keeps auth errors from credential reads", () => {
     expect(fail(createState(), "claude-expired", 0, 0)).toMatchObject({ error: "claude-expired", stale: false });
+  });
+
+  // QML XMLHttpRequest ignores xhr.timeout, so a request cut by suspend never finishes.
+  it("frees a request that never answers", () => {
+    const s = begin(createState(), 1000);
+    expect(canRequest(s, 1000 + REQUEST_TIMEOUT_MS - 1)).toBe(false);
+    expect(canRequest(s, 1000 + REQUEST_TIMEOUT_MS)).toBe(true);
+  });
+
+  it("still honors the 429 backoff while freeing a hung request", () => {
+    const s = begin(fail(createState(), "http", 429, 0), 0);
+    expect(canRequest(s, REQUEST_TIMEOUT_MS)).toBe(false);
+    expect(canRequest(s, BACKOFF_MS)).toBe(true);
   });
 });

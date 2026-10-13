@@ -21,6 +21,8 @@ Item {
   property var claude: Poll.createState()
   property var grok: Poll.createState()
   property var armed: ({})
+  // Latest request per provider. Not a binding source; only guards late callbacks.
+  property var requests: ({})
   property date clockNow: new Date()
 
   function setting(key) {
@@ -76,11 +78,17 @@ Item {
 
   // headers is a local list of pairs. Nothing in it is logged.
   function httpGet(provider, url, headers, parse) {
+    // xhr.timeout is ignored by QML, so a hung request is dropped by
+    // Poll.canRequest and aborted here when the next one replaces it.
     const xhr = new XMLHttpRequest();
-    xhr.timeout = 15000;
+    const previous = requests[provider];
+    requests[provider] = xhr;
+    if (previous)
+      previous.abort();
     xhr.onreadystatechange = function () {
-      if (xhr.readyState !== XMLHttpRequest.DONE)
+      if (xhr.readyState !== XMLHttpRequest.DONE || root.requests[provider] !== xhr)
         return;
+      root.requests[provider] = null;
       const status = xhr.status;
       if (status === 0) {
         Logger.w("aibar", provider, status);

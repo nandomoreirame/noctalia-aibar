@@ -5,17 +5,21 @@
 //        | "claude-login" | "claude-expired" | "grok-login"
 
 var BACKOFF_MS = 5 * 60000;
+// QML XMLHttpRequest ignores xhr.timeout: a request cut by suspend or a dead
+// connection never reaches DONE, so an in-flight flag older than this is dropped.
+var REQUEST_TIMEOUT_MS = 30000;
 
 function createState() {
-  return { inFlight: false, snapshot: null, stale: false, error: "", code: 0, retryAt: 0 };
+  return { inFlight: false, startedAt: 0, snapshot: null, stale: false, error: "", code: 0, retryAt: 0 };
 }
 
 function canRequest(s, nowMs) {
-  return !s.inFlight && nowMs >= s.retryAt;
+  const free = !s.inFlight || nowMs - s.startedAt >= REQUEST_TIMEOUT_MS;
+  return free && nowMs >= s.retryAt;
 }
 
 function begin(s, nowMs) {
-  return Object.assign({}, s, { inFlight: true });
+  return Object.assign({}, s, { inFlight: true, startedAt: nowMs });
 }
 
 function succeed(s, snapshot) {
