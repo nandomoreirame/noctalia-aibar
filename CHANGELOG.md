@@ -8,6 +8,22 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-13
+
+### Added
+
+- Keep the last usage snapshot of each provider in `~/.cache/noctalia/aibar-snapshots.json` (usage data only, never a credential), so the bars come back marked stale right after a shell restart.
+- Show "Limit reached: resets in X" in the card and the bar tooltip while a window is at 100%, hiding the login prompt that an unused CLI's expired token would otherwise trigger.
+
+### Changed
+
+- Pin the QtQuick import to version 6.11 across the QML files.
+
+### Fixed
+
+- Fix usage that stopped updating after suspend: QML `XMLHttpRequest` ignores `timeout`, so a request cut mid-flight blocked every later poll. A request older than 30 s is now dropped and aborted when the next one starts, and late answers from it are ignored.
+
+---
 
 ## [0.1.0] - 2026-10-10
 
