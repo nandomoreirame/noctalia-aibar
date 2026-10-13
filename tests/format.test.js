@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { countdown, percentText, barText, minutesAgo, windowKey, errorMessage, moneyText } from "../utils/format.js";
+import { countdown, percentText, barText, minutesAgo, windowKey, errorMessage, moneyText, limitMessage } from "../utils/format.js";
 
 const M = 60000;
 
@@ -48,5 +48,17 @@ describe("format", () => {
     expect(moneyText({ used: 0.1 + 0.2, limit: 5, currency: "" }, ".")).toBe("0.30 / 5.00");
     expect(moneyText({ used: 1, limit: 2, currency: "USD" })).toBe("1.00 / 2.00 USD");
     expect(moneyText(null, ",")).toBe("");
+  });
+
+  it("hides login errors while a limit is reached, but keeps the others", () => {
+    for (const error of ["auth", "grok-login", "claude-expired", "claude-login"])
+      expect(errorMessage({ error: error }, "grok", 0, true)).toBe(null);
+    expect(errorMessage({ error: "network" }, "grok", 0, true)).toEqual({ key: "error.network", vars: null });
+    expect(errorMessage({ error: "auth" }, "grok", 0, false)).toEqual({ key: "error.grok-login", vars: null });
+  });
+
+  it("describes a reached limit with its reset countdown", () => {
+    expect(limitMessage({ percent: 100, end: 72 * M }, 0)).toEqual({ key: "panel.limit-reached", vars: { t: "1h12m" } });
+    expect(limitMessage(null, 0)).toBe(null);
   });
 });
