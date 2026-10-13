@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createState, canRequest, begin, succeed, fail, BACKOFF_MS, REQUEST_TIMEOUT_MS } from "../utils/poll.js";
+import { createState, canRequest, begin, succeed, fail, BACKOFF_MS, REQUEST_TIMEOUT_MS, restore } from "../utils/poll.js";
 
 const SNAP = { provider: "claude", windows: [{ id: "session", percent: 1 }] };
 
@@ -49,5 +49,18 @@ describe("poll", () => {
     const s = begin(fail(createState(), "http", 429, 0), 0);
     expect(canRequest(s, REQUEST_TIMEOUT_MS)).toBe(false);
     expect(canRequest(s, BACKOFF_MS)).toBe(true);
+  });
+
+  it("restores a cached snapshot as stale until the first answer", () => {
+    const s = restore(createState(), SNAP);
+    expect(s).toMatchObject({ snapshot: SNAP, stale: true, error: "" });
+    expect(canRequest(s, 0)).toBe(true);
+  });
+
+  it("never replaces live data with the cache, and ignores junk", () => {
+    const live = succeed(createState(), SNAP);
+    expect(restore(live, { windows: [] })).toBe(live);
+    expect(restore(createState(), null).snapshot).toBe(null);
+    expect(restore(createState(), { windows: "x" }).snapshot).toBe(null);
   });
 });

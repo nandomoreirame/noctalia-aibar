@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pace, status, primaryWindow } from "../utils/pace.js";
+import { pace, status, primaryWindow, exhausted } from "../utils/pace.js";
 
 const H = 3600000;
 
@@ -28,5 +28,18 @@ describe("primaryWindow", () => {
     expect(primaryWindow({ windows: [{ id: "weekly" }, { id: "session" }] }).id).toBe("session");
     expect(primaryWindow({ windows: [{ id: "period" }] }).id).toBe("period");
     expect(primaryWindow(null)).toBeNull();
+  });
+
+  it("finds the exhausted window that resets last", () => {
+    const week = { id: "weekly", percent: 100, start: 0, end: 50 * H };
+    const session = { id: "session", percent: 100, start: 0, end: 2 * H };
+    expect(exhausted({ windows: [session, week] }, H)).toBe(week);
+    expect(exhausted({ windows: [session, { id: "weekly", percent: 99.4, end: 50 * H }] }, H)).toBe(session);
+  });
+
+  it("ignores windows that already reset or have no end", () => {
+    expect(exhausted({ windows: [{ id: "session", percent: 100, end: H }] }, H)).toBe(null);
+    expect(exhausted({ windows: [{ id: "period", percent: 100, end: null }] }, 0)).toBe(null);
+    expect(exhausted(null, 0)).toBe(null);
   });
 });
