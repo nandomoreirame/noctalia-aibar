@@ -22,12 +22,15 @@ function parseBilling(text, nowMs) {
   }
   const c = o && o.config;
   if (!c || typeof c !== "object") return { ok: false, error: "parse" };
-  if (typeof c.creditUsagePercent !== "number") return { ok: false, error: "grok-format" };
+  // The server drops zero fields (protobuf JSON): a period without a percent is
+  // a fresh one at 0%. The legacy shape has neither.
+  const hasPercent = typeof c.creditUsagePercent === "number";
+  if (!hasPercent && !c.currentPeriod) return { ok: false, error: "grok-format" };
   const p = c.currentPeriod || {};
   const window = {
     id: "period",
     periodType: /MONTHLY/.test(String(p.type || "")) ? "monthly" : "weekly",
-    percent: c.creditUsagePercent,
+    percent: hasPercent ? c.creditUsagePercent : 0,
     start: time(p.start),
     end: time(p.end)
   };

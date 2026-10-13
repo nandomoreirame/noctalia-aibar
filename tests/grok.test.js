@@ -31,4 +31,13 @@ describe("grok parseBilling", () => {
     expect(parseBilling(read("grok-billing-legacy.json"), NOW)).toEqual({ ok: false, error: "grok-format" });
     expect(parseBilling("nope", NOW)).toEqual({ ok: false, error: "parse" });
   });
+
+  // Right after a reset the server omits zero fields (protobuf JSON), so the
+  // percent is missing but the period is there.
+  it("reads a fresh period without creditUsagePercent as 0%", () => {
+    const s = parseBilling(read("grok-billing-zero.json"), NOW);
+    expect(s.ok).toBe(true);
+    expect(s.snapshot.windows[0]).toMatchObject({ id: "period", percent: 0, periodType: "weekly", end: Date.parse("2026-10-20T19:06:04.770890+00:00") });
+    expect(s.snapshot.products).toEqual([]);
+  });
 });

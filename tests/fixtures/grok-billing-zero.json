@@ -1,0 +1,22 @@
+{
+  "config": {
+    "currentPeriod": {
+      "type": "USAGE_PERIOD_TYPE_WEEKLY",
+      "start": "2026-10-13T19:06:04.770890+00:00",
+      "end": "2026-10-20T19:06:04.770890+00:00"
+    },
+    "onDemandCap": {
+      "val": 0
+    },
+    "onDemandUsed": {
+      "val": 0
+    },
+    "isUnifiedBillingUser": true,
+    "prepaidBalance": {
+      "val": 0
+    },
+    "topUpMethod": "TOP_UP_METHOD_SAVED_PAYMENT_METHOD",
+    "billingPeriodStart": "2026-10-13T19:06:04.770890+00:00",
+    "billingPeriodEnd": "2026-10-20T19:06:04.770890+00:00"
+  }
+}
