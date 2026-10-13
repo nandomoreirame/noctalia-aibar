@@ -31,13 +31,24 @@ function windowKey(w) {
   return "window." + w.id;
 }
 
+var LOGIN_ERRORS = ["auth", "grok-login", "claude-login", "claude-expired"];
+
 // i18n key and vars for a provider's request error; null when there is none.
-function errorMessage(usage, provider, nowMs) {
+// limitReached hides login errors: the CLIs renew their token only when used,
+// so an expired one is expected while the plan is blocked.
+function errorMessage(usage, provider, nowMs, limitReached) {
   if (!usage || !usage.error) return null;
+  if (limitReached && LOGIN_ERRORS.indexOf(usage.error) !== -1) return null;
   if (usage.error === "auth") return { key: provider === "grok" ? "error.grok-login" : "error.claude-expired", vars: null };
   if (usage.error === "http") return { key: "error.http", vars: { code: usage.code } };
   if (usage.error === "rate-limited") return { key: "error.rate-limited", vars: { n: Math.max(0, Math.ceil((usage.retryAt - nowMs) / 60000)) } };
   return { key: "error." + usage.error, vars: null };
+}
+
+// i18n key and vars for a window at 100% (see Pace.exhausted); null without one.
+function limitMessage(w, nowMs) {
+  if (!w) return null;
+  return { key: "panel.limit-reached", vars: { t: countdown(w.end, nowMs) } };
 }
 
 // "33,50 / 90,00 BRL"; the decimal separator comes from the UI language.

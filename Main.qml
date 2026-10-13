@@ -65,6 +65,21 @@ Item {
     }
   }
 
+  // Usage data only, never a credential. Lets a blocked plan (whose CLI token
+  // expired from disuse) still show its bars after a shell restart.
+  function saveSnapshot(provider, snapshot) {
+    if (provider === "claude")
+      snapshotCache.claude = snapshot;
+    else
+      snapshotCache.grok = snapshot;
+    snapshotFile.writeAdapter();
+  }
+
+  function restoreSnapshots() {
+    claude = Poll.restore(claude, snapshotCache.claude);
+    grok = Poll.restore(grok, snapshotCache.grok);
+  }
+
   function applyResult(provider, kind, code, snapshot) {
     const now = Date.now();
     const next = snapshot ? Poll.succeed(provider === "claude" ? claude : grok, snapshot) : Poll.fail(provider === "claude" ? claude : grok, kind, code, now);
@@ -72,8 +87,10 @@ Item {
       claude = next;
     else
       grok = next;
-    if (snapshot)
+    if (snapshot) {
       onSnapshot(snapshot);
+      saveSnapshot(provider, snapshot);
+    }
   }
 
   // headers is a local list of pairs. Nothing in it is logged.
@@ -165,6 +182,20 @@ Item {
       return;
     pluginApi.pluginSettings.barProvider = setting("barProvider") === "grok" ? "claude" : "grok";
     pluginApi.saveSettings();
+  }
+
+  FileView {
+    id: snapshotFile
+    path: Settings.cacheDir + "aibar-snapshots.json"
+    blockLoading: false
+    printErrors: false
+    onLoaded: root.restoreSnapshots()
+
+    JsonAdapter {
+      id: snapshotCache
+      property var claude: null
+      property var grok: null
+    }
   }
 
   FileView {
