@@ -8,6 +8,14 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-10-13
+
+### Fixed
+
+- Read a Grok billing period that just reset as 0% instead of failing with "Unexpected Grok billing format" (the API omits zero-valued fields).
+
+---
+
 ## [0.1.1] - 2026-10-13
 
 ### Added
