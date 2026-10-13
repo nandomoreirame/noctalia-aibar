@@ -27,3 +27,16 @@ function primaryWindow(snapshot) {
   }
   return snapshot.windows[0];
 }
+
+// The window at 100% that unblocks last, or null. Windows already reset or
+// without an end are skipped: a cached snapshot can outlive them.
+function exhausted(snapshot, nowMs) {
+  if (!snapshot || !snapshot.windows) return null;
+  let found = null;
+  for (const w of snapshot.windows) {
+    if (typeof w.percent !== "number" || w.percent < 100) continue;
+    if (w.end === null || w.end === undefined || !(w.end > nowMs)) continue;
+    if (!found || w.end > found.end) found = w;
+  }
+  return found;
+}

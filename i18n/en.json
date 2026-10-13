@@ -8,7 +8,8 @@
   "pace": { "ahead": "{n} pts ahead", "behind": "{n} pts behind", "on": "on pace" },
   "panel": {
     "title": "AI usage", "refresh": "Refresh", "updated": "updated {n} min ago",
-    "updated-now": "updated now", "stale": "stale", "resets": "resets in {t}", "no-data": "No data yet"
+    "updated-now": "updated now", "stale": "stale", "resets": "resets in {t}", "no-data": "No data yet",
+    "limit-reached": "Limit reached: resets in {t}"
   },
   "error": {
     "claude-login": "Run `claude` to log in", "claude-expired": "Claude token expired: open `claude` to renew it",

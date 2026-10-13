@@ -17,6 +17,7 @@ Card {
   readonly property var usage: provider === "grok" ? main?.grok : main?.claude
   readonly property var snapshot: usage ? usage.snapshot : null
   readonly property bool hasSnapshot: !!snapshot
+  readonly property var exhaustedWindow: Pace.exhausted(snapshot, nowMs())
   readonly property string planLabel: {
     const plan = snapshot && provider === "claude" ? String(snapshot.plan || "") : "";
     if (plan === "")
@@ -64,7 +65,12 @@ Card {
   }
 
   function errorText() {
-    const msg = Format.errorMessage(usage, provider, nowMs());
+    const msg = Format.errorMessage(usage, provider, nowMs(), !!exhaustedWindow);
+    return msg ? tr(msg.key, msg.vars) : "";
+  }
+
+  function limitText() {
+    const msg = Format.limitMessage(exhaustedWindow, nowMs());
     return msg ? tr(msg.key, msg.vars) : "";
   }
 
@@ -193,6 +199,26 @@ Card {
             color: Color.mOnSurfaceVariant
           }
         }
+      }
+    }
+
+    RowLayout {
+      visible: root.limitText() !== ""
+      width: parent.width
+      spacing: Style.marginS
+
+      NIcon {
+        icon: "hourglass"
+        applyUiScale: false
+        color: Color.mError
+      }
+
+      NText {
+        Layout.fillWidth: true
+        text: root.limitText()
+        wrapMode: Text.WordWrap
+        pointSize: Style.fontSizeS
+        color: Color.mError
       }
     }
 

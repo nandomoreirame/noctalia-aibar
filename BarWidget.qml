@@ -41,6 +41,9 @@ Item {
     const windows = usage && usage.snapshot ? usage.snapshot.windows || [] : [];
     for (let i = 0; i < windows.length; i++)
       lines.push(windowLine(windows[i]));
+    const limit = Format.limitMessage(Pace.exhausted(usage ? usage.snapshot : null, nowMs()), nowMs());
+    if (limit)
+      lines.push(tr(limit.key, limit.vars));
     const err = errorText();
     if (err !== "")
       lines.push(err);
@@ -68,7 +71,8 @@ Item {
   }
 
   function errorText() {
-    const msg = Format.errorMessage(usage, provider, nowMs());
+    const limited = !!Pace.exhausted(usage ? usage.snapshot : null, nowMs());
+    const msg = Format.errorMessage(usage, provider, nowMs(), limited);
     return msg ? tr(msg.key, msg.vars) : "";
   }
 

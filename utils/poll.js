@@ -39,3 +39,10 @@ function fail(s, kind, code, nowMs) {
   }
   return Object.assign({}, s, { inFlight: false, stale: s.snapshot !== null, error: error, code: kind === "http" ? code : 0, retryAt: retryAt });
 }
+
+// Seeds an empty state with the snapshot cached on disk, marked stale until
+// the first answer. Live data always wins over the cache.
+function restore(s, snapshot) {
+  if (s.snapshot || !snapshot || !Array.isArray(snapshot.windows)) return s;
+  return Object.assign({}, s, { snapshot: snapshot, stale: true });
+}

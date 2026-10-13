@@ -8,7 +8,8 @@
   "pace": { "ahead": "{n} pts à frente", "behind": "{n} pts atrás", "on": "no ritmo" },
   "panel": {
     "title": "Uso de IA", "refresh": "Atualizar", "updated": "atualizado há {n} min",
-    "updated-now": "atualizado agora", "stale": "desatualizado", "resets": "reinicia em {t}", "no-data": "Sem dados ainda"
+    "updated-now": "atualizado agora", "stale": "desatualizado", "resets": "reinicia em {t}", "no-data": "Sem dados ainda",
+    "limit-reached": "Limite atingido: reinicia em {t}"
   },
   "error": {
     "claude-login": "Rode `claude` para entrar", "claude-expired": "Token do Claude expirou: abra o `claude` para renovar",
