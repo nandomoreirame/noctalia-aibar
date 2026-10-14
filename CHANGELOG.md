@@ -8,6 +8,26 @@ This project adheres to [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-13
+
+### Added
+
+- Add frozen Claude accounts: list `Name=dir` entries in the "Frozen Claude accounts" setting and the panel shows each one's last status with a "frozen" badge, without asking to renew its token.
+- Add `scripts/claude-swap` to swap the active login (`~/.claude`) with the frozen one (`~/.claude-freeze`), moving only `.credentials.json` and the `oauthAccount` block; it refuses to run while a `claude` session is open, and `init` freezes the current login.
+- Switch between Claude accounts inside the Claude card (Active · Frozen) and show the logged account email.
+- Cycle through every account and Grok with a middle click on the bar widget.
+
+### Changed
+
+- Key cached snapshots by the logged account id, so a swap never shows one account's usage under the other.
+- Show how long ago a snapshot was fetched as "2h5m" or "3d0h" instead of minutes.
+
+### Fixed
+
+- Show a window whose reset already passed as 0% instead of its old percent with "resets in 0m".
+
+---
+
 ## [0.1.2] - 2026-10-13
 
 ### Fixed

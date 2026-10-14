@@ -1,7 +1,7 @@
 {
   "id": "aibar",
   "name": "AI Bar",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "minNoctaliaVersion": "4.6.0",
   "author": "Fernando Moreira Costa",
   "license": "MIT",
