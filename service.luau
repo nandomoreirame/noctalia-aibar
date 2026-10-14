@@ -217,7 +217,7 @@ local function fingerprint(path: string): string
 	if not info then
 		return "missing"
 	end
-	return math.floor((tonumber(info.mtime) or 0) * 1000) .. ":" .. (tonumber(info.size) or 0)
+	return math.floor((tonumber(info.mtime) or 0) * 1000 + 0.5) .. ":" .. (tonumber(info.size) or 0)
 end
 
 -- true when the file's fingerprint differs from the last one seen.
