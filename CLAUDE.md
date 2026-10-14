@@ -4,45 +4,48 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status
 
-All 15 plan tasks are implemented. Design references:
+v5 port of aibar (Luau, `plugin.toml`, plugin API 22, version 0.2.0). Design references:
 
-- Spec: `docs/specs/aibar/SPEC.md` (REQ-001..014, verified claims V1..V10, AD-001..005,
-  edge cases)
-- Plan: `docs/plans/2026-10-10-aibar.md` (normalized snapshot shape, task breakdown)
+- Spec: `docs/specs/aibar-v5/SPEC.md` (REQ-001..021)
+- Plan: `docs/plans/2026-10-14-aibar-v5.md`
+
+The QML plugin for noctalia-shell 4.7.x is on branch `legacy-v4` (v0.1.3).
 
 ## What it is
 
-`aibar` is a personal Noctalia Shell **v4** plugin (QML, run as `qs -c noctalia-shell`)
-that shows Claude Code and Grok (SuperGrok / Grok Build) plan usage in the bar
-(percent, reset countdown, progress bar) and in a panel. Noctalia v5 is not a target.
-Sibling project and architecture reference: `~/dev/projects/noctalia-daybar`
-(`vitest.config.js` is copied verbatim from it).
+`aibar` is a personal Noctalia **v5** plugin, id `nandomoreirame/aibar`. It shows
+Claude Code and Grok (SuperGrok / Grok Build) plan usage in the bar (percent, reset
+countdown, progress bar) and in a panel.
 
 ## Commands
 
 ```bash
-npm install
-npm test                          # full vitest suite
-npm test -- tests/claude.test.js  # single file
+./run-tests                              # full suite, then tests/*.test.sh
+./run-tests tests/<name>.test.luau       # one Luau file
+noctalia plugins lint .
 ```
 
-Read the `Tests  N passed` line; never trust the exit code of a piped command.
+Read the `N passed, M failed` line and the `claude-swap:` line. A piped command
+reports the pipe's exit code, not the suite's.
 
 ## Architecture
 
-- `utils/**/*.js`: all logic as QML JavaScript libraries (`.pragma library`,
-  `.import "x.js" as X`, no ES `import`/`export`, top-level declarations at column 0 so
-  the `qml-library-to-esm` transform in `vitest.config.js` exports them). Pure
-  functions, TDD. Modules: `claude`, `grok` (parsers), `creds`, `pace`, `format`,
-  `poll` (in-flight/backoff/stale state machine), `notify` (threshold crossing).
-- QML (`Main.qml`, `BarWidget.qml`, `Panel.qml`, `Settings.qml`, `components/`): I/O and
-  rendering only. The look follows Daybar: `components/ui/Card.qml` and `PillButton.qml`
-  are copied from it, spacing uses `Math.round(N * Style.uiScaleRatio)`, and `Panel.qml`
-  sets `contentPreferredHeight` from its layout (without it SmartPanel opens tall). Services, FileView and
-  timers live in `Main.qml`; views reach them through `pluginApi.mainInstance`.
-- Both parsers return one normalized snapshot (AD-004) consumed by bar, tooltip, panel
-  and notifications; its shape is defined at the top of the plan. Window ids: Claude
-  `session`, `weekly`, `weekly-opus`, `weekly-sonnet`; Grok `period`.
+- `service.luau` is the only entry that reads credentials, calls HTTP, writes
+  `snapshots.json` and `selection.json`, and fires notifications. It publishes one
+  `view` on `noctalia.state` and watches the counters `cmd.refresh` and `cmd.cycle`.
+- `widget.luau` and `panel.luau` render only from `view`. Left click toggles the
+  panel. Middle click increments `cmd.cycle`. The panel refresh button increments
+  `cmd.refresh`.
+- `lib/*.luau` is pure: no `noctalia`, `barWidget`, `panel` or `ui` globals. Each
+  module returns one table. Siblings are required as `require("./x.luau")`. Modules:
+  `time`, `creds`, `pace`, `format`, `poll`, `notify`, `accounts`, `claude`, `grok`,
+  `view`, `present`.
+- `end` is a Luau keyword. Window bounds are `startMs` and `endMs` (epoch ms).
+  Window ids: Claude `session` (5h), `weekly` (7d), `weekly-opus`, `weekly-sonnet`;
+  Grok `period` with `periodType` `weekly` or `monthly`.
+- Tests load plugin modules with `modules.load("lib/x.luau")` (`tests/support/modules.luau`),
+  which compiles the source the way the host does. `tests/support/noctalia_mock.luau`
+  records HTTP, files, state, `barWidget` and `panel`.
 - Fixtures in `tests/fixtures/` are real responses with personal fields removed.
   `grok-billing-legacy.json` is the shape Grok returns when `format=credits` or the
   token header is missing.
@@ -58,11 +61,12 @@ Without the Claude Code `User-Agent` the Claude endpoint answers 429.
 
 ## Hard constraints
 
-- Credentials are **read-only**: never write, copy, cache or refresh them, never put a
-  token in a property, argv, file or log. An expired token is shown to the user as an
-  action, not refreshed. Requests use QML `XMLHttpRequest` only (no curl: the token
-  would show in `/proc`).
-- No `eval`/`Function`. UI strings through `pluginApi?.tr()` with `i18n/pt.json` and
-  `i18n/en.json` in sync (a coverage test enforces it).
-- Never write absolute home paths (`/home/...`) in files: a global pre-commit hook
-  rejects them. Use `/data/u` in fixtures.
+- Credentials are **read-only**: never write, copy, cache or refresh them. An expired
+  token is shown to the user as an action, not refreshed.
+- Tokens exist only in locals of `pollSource` and in the `headers` list passed to
+  `noctalia.http`. Never put a token in `noctalia.state`, a log, a file, argv or a
+  notification.
+- Paths stay `~/...` (the host expands them). Never write an absolute home path
+  in a file: a global pre-commit hook rejects it. Use `/data/u` in fixtures.
+- UI strings go through `noctalia.tr`. `translations/en.json` and `translations/pt-BR.json`
+  stay in sync (a coverage test enforces it).

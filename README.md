@@ -1,88 +1,98 @@
 # AI Bar
 
-A [Noctalia Shell](https://github.com/noctalia-dev/noctalia) plugin that shows
-Claude Code and Grok (SuperGrok / Grok Build) plan usage in the bar and in a
-panel: percent, reset countdown and a progress bar.
+AI Bar shows Claude Code and Grok (SuperGrok / Grok Build) plan usage in the
+Noctalia bar and in a panel: percent, reset countdown and a progress bar.
 
-![AI Bar panel with Claude Code and Grok usage](screenshots/panel.png)
+![AI Bar panel](screenshots/panel.png)
 
-> [!IMPORTANT]
-> AI Bar is a **Noctalia Shell v4** plugin (QML, `manifest.json`), tested on
-> **noctalia-shell 4.7.7**. It does **not** run on Noctalia v5, whose plugin system
-> is a different one (Luau scripts with a `plugin.toml` manifest). A v5 port is
-> planned. See [Compatibility](#compatibility).
+## Plugin
 
-## Compatibility
+| | |
+|---|---|
+| Id | `nandomoreirame/aibar` |
+| Bar widget | `nandomoreirame/aibar:bar` |
+| Panel | `nandomoreirame/aibar:panel` |
+| Usage service | `nandomoreirame/aibar:usage` |
 
-| Noctalia | Status |
-|----------|--------|
-| v4 (`noctalia-shell` 4.7.x, run as `qs -c noctalia-shell`) | Supported, tested on 4.7.7 |
-| v4 before 4.7 | Untested |
-| v5 (`noctalia` 5.x) | Not supported: v5 plugins are written in Luau, so AI Bar would need a rewrite |
+## Usage
 
-**v5 is planned.** I intend to port AI Bar to Noctalia v5 once I have it installed
-and tested on my CachyOS setup. Until then, v4 is the only supported target.
+Symlink this repo into the v5 plugin directory and enable it:
 
-On Arch/CachyOS the v4 shell is the `noctalia-shell` package and v5 is `noctalia`;
-both can be installed side by side. Check the installed v4 version with
-`pacman -Q noctalia-shell`, and make sure the bar you use is started with
-`qs -c noctalia-shell`.
+```bash
+ln -s ~/dev/projects/noctalia-aibar ~/.local/share/noctalia/plugins/aibar
+noctalia msg plugins enable nandomoreirame/aibar
+```
+
+Add `nandomoreirame/aibar:bar` to a bar. Left click opens the panel. Middle click
+cycles the source (Claude accounts, then Grok) and the choice is saved.
+
+```bash
+noctalia msg panel-toggle nandomoreirame/aibar:panel
+```
 
 ## Requirements
 
-- noctalia-shell 4.7.x (see [Compatibility](#compatibility))
+- Noctalia 5.x with plugin API 22 or newer
 - `claude` CLI, logged in (`~/.claude/.credentials.json` present)
 - `grok login` already done (`~/.grok/auth.json` present)
+- Optional: `jq`, for `scripts/claude-swap`
 
-The plugin only reads those files. It never writes them, copies them, or refreshes
-a token.
-
-## Install
-
-```bash
-git clone https://github.com/nandomoreirame/noctalia-aibar ~/dev/projects/noctalia-aibar
-ln -s ~/dev/projects/noctalia-aibar ~/.config/noctalia/plugins/aibar
-```
-
-Enable **AI Bar** in Noctalia Settings > Plugins, then add the **AI Bar** widget
-to the bar.
+The plugin only reads the credential files. It never writes them, copies them,
+or refreshes a token.
 
 ## Settings
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| Provider in the bar | Claude Code | Which provider the bar widget shows. Middle click on the widget switches it and the choice is saved. |
-| Refresh every (minutes) | 5 | Poll interval. Minimum 2. |
-| Notify at (%) | 97 | One toast when a window crosses this percent upward. 0 turns notifications off. |
-| Claude User-Agent | `claude-cli/2.1.281 (external, cli)` | Must look like a published Claude Code CLI, or the usage endpoint answers 429. |
+| Provider in the bar | `claude` | Source the bar shows: `claude`, `grok`, or `claude:<name>`. Middle click cycles the sources. Changing this setting overrides that choice. |
+| Refresh every (minutes) | `5` | Poll interval. Minimum 2, maximum 60. |
+| Notify at (%) | `97` | One toast when a window crosses this percent upward. `0` turns notifications off. |
+| Claude User-Agent | `claude-cli/2.1.281 (external, cli)` | Advanced. Must look like a published Claude Code CLI, or the usage endpoint answers 429. |
+| Frozen Claude accounts | empty | One `Name=dir` per entry. The panel shows their last status. Example: `Frozen=~/.claude-freeze`. |
 
-## Data sources
+## IPC
 
-| Provider | Endpoint | Credential file | Notes |
-|----------|----------|-----------------|-------|
-| Claude Code | `GET https://api.anthropic.com/api/oauth/usage` | `~/.claude/.credentials.json` (`claudeAiOauth.accessToken`) | Read-only. Headers: `Authorization`, `anthropic-beta: oauth-2025-04-20`, `User-Agent`. No token refresh. |
-| Grok | `GET https://cli-chat-proxy.grok.com/v1/billing?format=credits` | `~/.grok/auth.json` (first non-empty `key`) | Read-only. Headers: `Authorization`, `X-XAI-Token-Auth: xai-grok-cli`. Without `format=credits` the server answers a legacy shape the plugin refuses. |
+```bash
+noctalia msg plugin nandomoreirame/aibar:usage all refresh
+noctalia msg plugin nandomoreirame/aibar:usage all cycle
+```
 
-The token is sent only as a request header from QML `XMLHttpRequest`. It is never
-written to a property, a file, argv or the log.
+## Notes
 
-## Failures
+**Network.** `GET https://api.anthropic.com/api/oauth/usage` and
+`GET https://cli-chat-proxy.grok.com/v1/billing?format=credits`, every
+`poll_minutes`, on refresh, and when a credential file changes. Native HTTP
+client. Tokens travel only in request headers.
 
-A failed request keeps the last good snapshot and marks it stale: the bar text
-dims and the card shows a stale badge, plus the error. Network errors, HTTP 5xx
-and unparseable bodies are errors. HTTP 401 and 403 are auth errors. HTTP 429
-waits five minutes before the next request to that provider. A later success
-clears the error and the wait.
+**Files read**, never written: `~/.claude/.credentials.json`, `~/.claude.json`,
+`<dir>/.credentials.json` and `<dir>/.claude.json` for each frozen account, and
+`~/.grok/auth.json`.
+
+**Files written**, in the plugin data directory: `snapshots.json` (usage data,
+no credential) and `selection.json` (the bar source).
+
+**Processes.** None. `scripts/claude-swap` is a separate CLI. The plugin never
+runs it.
+
+**Frozen accounts.** `scripts/claude-swap` swaps the active Claude Code login
+(`~/.claude`) with the frozen one (`~/.claude-freeze`). Only the login moves:
+`.credentials.json` and the `oauthAccount` block of `.claude.json`. Settings,
+skills, memory, MCP servers and projects stay put. List any extra login in
+Frozen Claude accounts so the panel can show its last status on its own tab.
+After a swap, the card follows the account that is now active.
+
+**v4.** The QML version lives on branch `legacy-v4` (v0.1.3) for noctalia-shell 4.7.x.
 
 ## Development
 
-```bash
-npm install
-npm test
-```
+`./run-tests` needs the `luau` CLI. `lib/*.luau` is pure logic. The entries
+(`service.luau`, `widget.luau`, `panel.luau`) and `plugin.toml` sit at the repo
+root.
 
-Logic lives in `utils/**/*.js` (QML libraries). `vitest.config.js` turns those
-libraries into ES modules for the tests only. The files on disk stay valid QML.
+```bash
+./run-tests
+noctalia plugins lint .
+```
 
 ## Credits
 
