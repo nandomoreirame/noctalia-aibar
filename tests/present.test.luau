@@ -154,3 +154,23 @@ describe("present.panel", function()
 		assert.deepEqual(m.others, {})
 	end)
 end)
+
+describe("present helpers", function()
+	it("wraps a host translator, passing vars only when given", function()
+		local seen = {}
+		local t = present.translator(function(...)
+			seen = { ... }
+			return "x"
+		end)
+		assert.equal(t("a.b"), "x")
+		assert.equal(#seen, 1)
+		t("a.b", { n = 1 })
+		assert.equal(#seen, 2)
+	end)
+
+	it("bumps a command counter from any stored value", function()
+		assert.equal(present.bump(nil), 1)
+		assert.equal(present.bump(4), 5)
+		assert.equal(present.bump("2"), 3)
+	end)
+end)
