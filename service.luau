@@ -19,7 +19,8 @@ local states = {}
 local identities = {}
 local mtimes = {}
 local tick = 0
--- key -> tick when a file change asked for a poll; served on a later tick.
+-- key -> tick when a file change or swap asked for a poll. Never polled on
+-- that tick by anyone; served once on a later tick.
 local pending = {}
 local generation = {}
 local armed = {}
@@ -125,6 +126,10 @@ end
 
 local function pollSource(source: any): boolean
 	local key = source.key
+	-- Marked this tick (file change or swap): wait for a later tick, whoever asks.
+	if pending[key] == tick then
+		return false
+	end
 	local t = now()
 	local current = stateOf(key)
 	if not poll.canRequest(current, t) then
@@ -304,14 +309,14 @@ function update()
 		end
 	end
 	for _, s in sources do
-		local mark = pending[s.key]
-		if mark ~= nil and mark < tick and pollSource(s) then
-			pending[s.key] = nil
+		if changed(accounts.credPath(s)) and pending[s.key] == nil then
+			pending[s.key] = tick
 		end
 	end
 	for _, s in sources do
-		if changed(accounts.credPath(s)) and pending[s.key] == nil then
-			pending[s.key] = tick
+		local mark = pending[s.key]
+		if mark ~= nil and mark < tick and pollSource(s) then
+			pending[s.key] = nil
 		end
 	end
 	if now() >= nextPollAt then

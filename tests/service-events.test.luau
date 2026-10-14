@@ -251,3 +251,62 @@ describe("service settings changes", function()
 		assert.equal(found, true)
 	end)
 end)
+
+describe("service deferral", function()
+	local B_JSON = '{"oauthAccount":{"accountUuid":"u2","emailAddress":"b@x.dev"}}'
+	local B_CRED = '{"claudeAiOauth":{"accessToken":"SECRET-B","expiresAt":1891662400000}}'
+
+	local function answered()
+		local s = h.boot()
+		mock.respond(s.env, h.requests(s, h.CLAUDE_URL)[1], { ok = true, status = 200, body = h.CLAUDE_BODY })
+		mock.respond(s.env, h.requests(s, h.GROK_URL)[1], { ok = true, status = 200, body = h.GROK_BODY })
+		return s
+	end
+
+	it("does not poll a swapped account on the scheduled poll tick", function()
+		local s = answered()
+		mock.setNow(s.env, h.NOW + 5 * 60000)
+		mock.setFile(s.env, "~/.claude.json", B_JSON, 2)
+		s.call("update")
+		assert.equal(#h.requests(s, h.CLAUDE_URL), 1)
+		assert.equal(#h.requests(s, h.GROK_URL), 2)
+		mock.setFile(s.env, "~/.claude/.credentials.json", B_CRED, 2)
+		s.call("update")
+		s.call("update")
+		local c = h.requests(s, h.CLAUDE_URL)
+		assert.equal(#c, 2)
+		assert.equal(h.header(s, c[2], "Authorization:"), "Authorization: Bearer SECRET-B")
+	end)
+
+	it("does not poll a swapped account from a refresh on the same tick", function()
+		local s = answered()
+		mock.setFile(s.env, "~/.claude.json", B_JSON, 2)
+		s.env.noctalia.state.set("cmd.refresh", 1)
+		assert.equal(#h.requests(s, h.CLAUDE_URL), 1)
+		mock.setFile(s.env, "~/.claude/.credentials.json", B_CRED, 2)
+		s.call("update")
+		local c = h.requests(s, h.CLAUDE_URL)
+		assert.equal(#c, 2)
+		assert.equal(h.header(s, c[2], "Authorization:"), "Authorization: Bearer SECRET-B")
+	end)
+
+	it("polls a credential change once when it lands on the scheduled poll tick", function()
+		local s = answered()
+		mock.setNow(s.env, h.NOW + 5 * 60000)
+		mock.setFile(s.env, "~/.claude/.credentials.json", B_CRED, 2)
+		-- Answer every new request right away, so a duplicate is not hidden by inFlight.
+		local done = 1
+		local function step()
+			s.call("update")
+			local c = h.requests(s, h.CLAUDE_URL)
+			for i = done + 1, #c do
+				mock.respond(s.env, c[i], { ok = true, status = 200, body = h.CLAUDE_BODY })
+			end
+			done = #c
+		end
+		step()
+		step()
+		step()
+		assert.equal(#h.requests(s, h.CLAUDE_URL), 2)
+	end)
+end)

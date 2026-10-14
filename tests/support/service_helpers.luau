@@ -50,4 +50,14 @@ function H.sourceOf(loaded, key)
 	return nil
 end
 
+-- The header line of http call #index that starts with prefix, or nil.
+function H.header(loaded, index, prefix)
+	for _, line in mock.pendingHttp(loaded.env)[index].request.headers do
+		if string.sub(line, 1, #prefix) == prefix then
+			return line
+		end
+	end
+	return nil
+end
+
 return H
