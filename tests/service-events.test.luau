@@ -117,6 +117,20 @@ describe("service commands and selection", function()
 		assert.equal(h.view(s).barKey, "claude")
 	end)
 
+	it("falls back to bar_provider when the chosen account is removed", function()
+		local s = h.boot({
+			config = { bar_provider = "grok", claude_accounts = { "Work=~/.claude-w" } },
+			fs = { ["~/.claude-w/.credentials.json"] = h.CLAUDE_CRED },
+		})
+		s.env.noctalia.state.set("cmd.cycle", 1)
+		s.env.noctalia.state.set("cmd.cycle", 2)
+		assert.equal(h.view(s).barKey, "claude:work")
+		mock.setConfig(s.env, "claude_accounts", {})
+		s.call("onConfigChanged")
+		assert.equal(h.view(s).barKey, "grok")
+		assert.equal(mock.json.decode(s.env.noctalia.readFile("/mock/plugin-data/selection.json")).key, "grok")
+	end)
+
 	it("refreshes every source on cmd.refresh", function()
 		local s = h.boot()
 		mock.respond(s.env, 1, { ok = true, status = 200, body = h.CLAUDE_BODY })
