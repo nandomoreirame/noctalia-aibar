@@ -250,6 +250,62 @@ describe("service settings changes", function()
 		end
 		assert.equal(found, true)
 	end)
+
+	it("polls an added account whose id is already cached", function()
+		local cached = '{"byAccount":{"u7":{"provider":"claude","plan":"","windows":[{"id":"weekly","percent":20,"startMs":1791597600082,"endMs":1792202400082}],"products":[],"fetchedAt":1}}}'
+		local s = h.boot({ fs = {
+			["/mock/plugin-data/snapshots.json"] = cached,
+			["~/.claude-w/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-W","expiresAt":1891662400000}}',
+			["~/.claude-w/.claude.json"] = '{"oauthAccount":{"accountUuid":"u7","emailAddress":"w@x.dev"}}',
+		} })
+		local before = #h.requests(s, h.CLAUDE_URL)
+		mock.setConfig(s.env, "claude_accounts", { "Work=~/.claude-w" })
+		s.call("onConfigChanged")
+		local c = h.requests(s, h.CLAUDE_URL)
+		assert.equal(#c, before + 1)
+		assert.equal(h.header(s, c[#c], "Authorization:"), "Authorization: Bearer SECRET-W")
+		assert.equal(h.sourceOf(s, "claude:work").snapshot.windows[1].percent, 20)
+	end)
+
+	it("forgets a removed account, including its answer in flight", function()
+		local s = h.boot({
+			config = { notify_threshold = 10, claude_accounts = { "Work=~/.claude-a" } },
+			fs = {
+				["~/.claude-a/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-A","expiresAt":1891662400000}}',
+				["~/.claude-a/.claude.json"] = '{"oauthAccount":{"accountUuid":"u7","emailAddress":"w@x.dev"}}',
+				["~/.claude-b/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-B","expiresAt":1891662400000}}',
+			},
+		})
+		local workRequest = nil
+		for _, i in h.requests(s, h.CLAUDE_URL) do
+			if h.header(s, i, "Authorization:") == "Authorization: Bearer SECRET-A" then
+				workRequest = i
+			end
+		end
+		mock.setConfig(s.env, "claude_accounts", {})
+		s.call("onConfigChanged")
+		mock.respond(s.env, workRequest, { ok = true, status = 200, body = h.CLAUDE_BODY })
+		assert.equal(#mock.calls(s.env, "noctalia.notify"), 0)
+		assert.equal(s.env.noctalia.readFile("/mock/plugin-data/snapshots.json"), nil)
+		mock.setConfig(s.env, "claude_accounts", { "Work=~/.claude-b" })
+		s.call("onConfigChanged")
+		local work = h.sourceOf(s, "claude:work")
+		assert.equal(work.email, "")
+		assert.equal(work.snapshot, nil)
+		local c = h.requests(s, h.CLAUDE_URL)
+		assert.equal(h.header(s, c[#c], "Authorization:"), "Authorization: Bearer SECRET-B")
+	end)
+
+	it("does not swallow a credential change seen first by a settings change", function()
+		local s = answered()
+		local before = #h.requests(s, h.CLAUDE_URL)
+		mock.setFile(s.env, "~/.claude/.credentials.json", h.CLAUDE_CRED .. " ", 2)
+		mock.setConfig(s.env, "notify_threshold", 50)
+		s.call("onConfigChanged")
+		s.call("update")
+		s.call("update")
+		assert.equal(#h.requests(s, h.CLAUDE_URL), before + 1)
+	end)
 end)
 
 describe("service deferral", function()

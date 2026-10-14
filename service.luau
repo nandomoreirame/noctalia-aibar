@@ -255,31 +255,54 @@ local function refresh()
 	publish()
 end
 
--- Rebuilds the sources from settings. A key whose dir changed is a different
--- account: its identity, state and pending answers are dropped. Returns the
--- sources without a state before this call (new or reset).
+-- Forget everything about a key: identity, state, pending mark, and any answer
+-- still in flight (its generation no longer matches).
+local function resetSource(key: string)
+	identities[key] = nil
+	states[key] = nil
+	pending[key] = nil
+	generation[key] = (generation[key] or 0) + 1
+end
+
+-- Start watching a path without consuming a change update() has not seen.
+local function watch(path: string)
+	if mtimes[path] == nil then
+		changed(path)
+	end
+end
+
+-- Rebuilds the sources from settings. A key whose dir changed, or that was
+-- removed, is reset. Returns the sources that had no state before this call
+-- (new or reset); they need a poll even when a cached snapshot was restored.
 local function configure(): { any }
 	local previous = {}
 	for _, s in sources do
 		previous[s.key] = s.dir
 	end
 	sources = accounts.sources(accounts.parseAccounts(noctalia.getConfig("claude_accounts")))
+	local kept = {}
 	local fresh = {}
 	for _, s in sources do
+		kept[s.key] = true
 		if previous[s.key] ~= nil and previous[s.key] ~= s.dir then
-			identities[s.key] = nil
-			states[s.key] = nil
-			pending[s.key] = nil
-			generation[s.key] = (generation[s.key] or 0) + 1
+			resetSource(s.key)
 		end
-		changed(accounts.credPath(s))
+		local isFresh = states[s.key] == nil
+		watch(accounts.credPath(s))
 		if s.provider == "claude" then
-			changed(accounts.configPath(s))
+			watch(accounts.configPath(s))
 			syncIdentity(s)
 		end
 		if states[s.key] == nil then
 			states[s.key] = poll.restore(poll.createState(), accounts.cachedSnapshot(cache, s.key, uuidOf(s.key)))
+		end
+		if isFresh then
 			table.insert(fresh, s)
+		end
+	end
+	for key in previous do
+		if not kept[key] then
+			resetSource(key)
 		end
 	end
 	return fresh
