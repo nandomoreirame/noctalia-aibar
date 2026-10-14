@@ -12,6 +12,7 @@ describe("service file changes", function()
 		mock.respond(s.env, h.requests(s, h.CLAUDE_URL)[1], { ok = true, status = 200, body = h.CLAUDE_BODY })
 		mock.setFile(s.env, "~/.claude/.credentials.json", h.CLAUDE_CRED, 2)
 		s.call("update")
+		s.call("update")
 		assert.equal(#h.requests(s, h.CLAUDE_URL), 2)
 		s.call("update")
 		assert.equal(#h.requests(s, h.CLAUDE_URL), 2)
@@ -21,6 +22,7 @@ describe("service file changes", function()
 		local s = h.boot()
 		local first = h.requests(s, h.CLAUDE_URL)[1]
 		mock.setFile(s.env, "~/.claude.json", '{"oauthAccount":{"accountUuid":"u2","emailAddress":"b@x.dev"}}', 2)
+		s.call("update")
 		s.call("update")
 		local c = h.requests(s, h.CLAUDE_URL)
 		assert.equal(#c, 2)
@@ -43,6 +45,37 @@ describe("service file changes", function()
 		local frozen = h.sourceOf(s, "claude:frozen")
 		assert.equal(frozen.frozen, true)
 		assert.equal(frozen.email, "f@x.dev")
+	end)
+
+	it("keeps a credential change that arrives while a request is in flight", function()
+		local s = h.boot()
+		mock.setFile(s.env, "~/.claude/.credentials.json", h.CLAUDE_CRED, 2)
+		s.call("update")
+		assert.equal(#h.requests(s, h.CLAUDE_URL), 1)
+		mock.respond(s.env, h.requests(s, h.CLAUDE_URL)[1], { ok = true, status = 401, body = "" })
+		s.call("update")
+		assert.equal(#h.requests(s, h.CLAUDE_URL), 2)
+	end)
+
+	it("polls a swapped account only with its own token", function()
+		local s = h.boot()
+		mock.setFile(s.env, "~/.claude.json", '{"oauthAccount":{"accountUuid":"u2","emailAddress":"b@x.dev"}}', 2)
+		s.call("update")
+		assert.equal(h.sourceOf(s, "claude").email, "b@x.dev")
+		assert.equal(#h.requests(s, h.CLAUDE_URL), 1)
+		mock.setFile(s.env, "~/.claude/.credentials.json", '{"claudeAiOauth":{"accessToken":"SECRET-B","expiresAt":1891662400000}}', 2)
+		s.call("update")
+		s.call("update")
+		local c = h.requests(s, h.CLAUDE_URL)
+		assert.equal(#c, 2)
+		local headers = mock.pendingHttp(s.env)[c[2]].request.headers
+		local found = false
+		for _, line in headers do
+			if line == "Authorization: Bearer SECRET-B" then
+				found = true
+			end
+		end
+		assert.equal(found, true)
 	end)
 end)
 
