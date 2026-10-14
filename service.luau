@@ -208,10 +208,43 @@ local function loadCache()
 	end
 end
 
+-- true when the file's mtime differs from the last one seen (missing = -1).
+local function changed(path: string): boolean
+	local info = noctalia.fileInfo(path)
+	local mtime = if info then info.mtime else -1
+	if mtimes[path] == mtime then
+		return false
+	end
+	mtimes[path] = mtime
+	return true
+end
+
+local function persistSelection()
+	noctalia.writeFile(dataPath("selection.json"), noctalia.json.encode({ key = barKey }))
+end
+
+local function cycle()
+	barKey = accounts.nextKey(sources, barKey)
+	persistSelection()
+	publish()
+end
+
+local function refresh()
+	for _, s in sources do
+		if s.provider == "claude" then
+			syncIdentity(s)
+		end
+		pollSource(s)
+	end
+	publish()
+end
+
 local function configure()
 	sources = accounts.sources(accounts.parseAccounts(noctalia.getConfig("claude_accounts")))
 	for _, s in sources do
+		changed(accounts.credPath(s))
 		if s.provider == "claude" then
+			changed(accounts.configPath(s))
 			syncIdentity(s)
 		end
 		if states[s.key] == nil then
@@ -228,9 +261,23 @@ local function start()
 	local selection = decodeFile(dataPath("selection.json"))
 	barKey = view.initialKey(sources, if typeof(selection) == "table" then selection.key else nil, lastBarSetting)
 	pollAll()
+	noctalia.state.watch("cmd.refresh", function()
+		refresh()
+	end)
+	noctalia.state.watch("cmd.cycle", function()
+		cycle()
+	end)
 end
 
 function update()
+	for _, s in sources do
+		if s.provider == "claude" and changed(accounts.configPath(s)) then
+			syncIdentity(s)
+		end
+		if changed(accounts.credPath(s)) then
+			pollSource(s)
+		end
+	end
 	if now() >= nextPollAt then
 		pollAll()
 	else
@@ -240,11 +287,25 @@ end
 
 function onIpc(event: string, _payload: any)
 	if event == "refresh" then
-		for _, s in sources do
-			pollSource(s)
-		end
-		publish()
+		refresh()
+	elseif event == "cycle" then
+		cycle()
 	end
+end
+
+-- Settings changed: rebuild the sources (claude_accounts), and let only a
+-- *changed* bar_provider override the middle-click choice.
+function onConfigChanged()
+	configure()
+	local setting = tostring(noctalia.getConfig("bar_provider") or "")
+	if setting ~= lastBarSetting then
+		lastBarSetting = setting
+		barKey = accounts.resolveKey(sources, setting)
+		persistSelection()
+	else
+		barKey = accounts.resolveKey(sources, barKey)
+	end
+	pollAll()
 end
 
 start()
