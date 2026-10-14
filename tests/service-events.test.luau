@@ -77,6 +77,18 @@ describe("service file changes", function()
 		end
 		assert.equal(found, true)
 	end)
+
+	it("keeps the answer of a request started before the account was known", function()
+		local s = h.boot({ fs = { ["~/.claude.json"] = false } })
+		mock.setFile(s.env, "~/.claude.json", h.CLAUDE_JSON, 2)
+		s.call("update")
+		mock.respond(s.env, h.requests(s, h.CLAUDE_URL)[1], { ok = true, status = 200, body = h.CLAUDE_BODY })
+		local c = h.sourceOf(s, "claude")
+		assert.equal(c.inFlight, false)
+		assert.equal(c.snapshot.windows[1].percent, 47)
+		local saved = mock.json.decode(s.env.noctalia.readFile("/mock/plugin-data/snapshots.json"))
+		assert.equal(saved.byAccount.u1.windows[1].percent, 47)
+	end)
 end)
 
 describe("service commands and selection", function()
