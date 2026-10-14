@@ -7,7 +7,9 @@ local isOpen = false
 local claudeTab = 1
 local current = nil
 
-local tr = present.translator(noctalia.tr)
+local tr = present.translator(function(...)
+	return noctalia.tr(...)
+end)
 
 local function usageRow(row: any): any
 	local children = {

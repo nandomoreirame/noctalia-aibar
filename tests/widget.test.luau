@@ -62,4 +62,14 @@ describe("widget", function()
 		w.call("onMiddleClick")
 		assert.equal(w.env.noctalia.state.get("cmd.cycle"), 2)
 	end)
+
+	it("uses the current noctalia.tr on every render", function()
+		local w = entry.load("widget.luau", {})
+		w.env.noctalia.tr = function(key)
+			return "T:" .. key
+		end
+		w.env.noctalia.state.set("view", VIEW)
+		local tips = mock.calls(w.env, "barWidget.setTooltip")
+		assert.equal(tips[#tips][1][1][1], "T:window.session")
+	end)
 end)

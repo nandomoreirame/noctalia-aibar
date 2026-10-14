@@ -6,7 +6,9 @@ local present = require("./lib/present.luau")
 
 local PANEL = "nandomoreirame/aibar:panel"
 
-local tr = present.translator(noctalia.tr)
+local tr = present.translator(function(...)
+	return noctalia.tr(...)
+end)
 
 local function render(v: any)
 	local m = present.bar(v, tr)

@@ -47,7 +47,9 @@ local function decodeFile(path: string): any
 	return (noctalia.json.decode(text))
 end
 
-local tr = present.translator(noctalia.tr)
+local tr = present.translator(function(...)
+	return noctalia.tr(...)
+end)
 
 local function stateOf(key: string): any
 	return states[key] or poll.createState()
