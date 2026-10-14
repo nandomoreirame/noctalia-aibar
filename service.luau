@@ -108,7 +108,9 @@ local function request(source: any, url: string, headers: { string }, parse: (an
 	local account = uuidOf(key)
 	states[key] = poll.begin(stateOf(key), now())
 	noctalia.http({ url = url, method = "GET", headers = headers }, function(res)
-		if generation[key] ~= id or uuidOf(key) ~= account then
+		-- A request started without a known account belongs to whichever account is
+		-- adopted next; one started with a known account is dropped after a swap.
+		if generation[key] ~= id or (account ~= "" and uuidOf(key) ~= account) then
 			return
 		end
 		local status = tonumber(res and res.status) or 0
