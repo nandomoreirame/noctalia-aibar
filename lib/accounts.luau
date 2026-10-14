@@ -18,6 +18,18 @@ local function slug(name: string): string
 	return (string.gsub(s, "^%-+", ""):gsub("%-+$", ""))
 end
 
+-- A bar_provider value -> source key: "claude:Trabalho Pessoal" -> "claude:trabalho-pessoal".
+function Accounts.normalizeKey(value: any): string
+	if typeof(value) ~= "string" then
+		return ""
+	end
+	local text = string.lower(trim(value))
+	if string.sub(text, 1, 7) == "claude:" then
+		return "claude:" .. slug(string.sub(text, 8))
+	end
+	return text
+end
+
 local function validDir(dir: string): boolean
 	if string.sub(dir, 1, 2) ~= "~/" and string.sub(dir, 1, 1) ~= "/" then
 		return false

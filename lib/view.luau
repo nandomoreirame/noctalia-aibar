@@ -33,7 +33,7 @@ function View.initialKey(sources: any, persisted: any, setting: any): string
 	if typeof(persisted) == "string" and accounts.indexOfKey(sources, persisted) > 0 then
 		return persisted
 	end
-	return accounts.resolveKey(sources, if typeof(setting) == "string" then setting else "")
+	return accounts.resolveKey(sources, accounts.normalizeKey(setting))
 end
 
 return View

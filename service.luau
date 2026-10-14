@@ -325,7 +325,7 @@ function onConfigChanged()
 	local setting = tostring(noctalia.getConfig("bar_provider") or "")
 	if setting ~= lastBarSetting then
 		lastBarSetting = setting
-		barKey = accounts.resolveKey(sources, setting)
+		barKey = view.initialKey(sources, nil, setting)
 		persistSelection()
 	else
 		-- A source that vanished (removed account) falls back like at boot.
