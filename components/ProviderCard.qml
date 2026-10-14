@@ -6,16 +6,25 @@ import "ui"
 import "../utils/pace.js" as Pace
 import "../utils/format.js" as Format
 
-// One provider: header, a row per window, extra usage or products, and the error.
+// One source (a Claude account or Grok): header, a row per window, extra usage or products, and the error.
 Card {
   id: root
 
-  property string provider: "claude"
+  property string sourceKey: "claude"
   property var pluginApi: null
+  // Claude sources this card can switch between, and the one shown.
+  property var accounts: []
+  property int accountIndex: 0
+
+  signal accountSelected(int index)
 
   readonly property var main: pluginApi?.mainInstance ?? null
-  readonly property var usage: provider === "grok" ? main?.grok : main?.claude
-  readonly property var snapshot: usage ? usage.snapshot : null
+  readonly property var source: main ? main.sourceOf(sourceKey) : null
+  readonly property string provider: source?.provider ?? "claude"
+  readonly property var usage: main ? main.stateOf(sourceKey) : null
+  readonly property bool frozen: source?.frozen ?? false
+  readonly property string email: main ? main.accountEmail(sourceKey) : ""
+  readonly property var snapshot: Pace.project(usage ? usage.snapshot : null, nowMs())
   readonly property bool hasSnapshot: !!snapshot
   readonly property var exhaustedWindow: Pace.exhausted(snapshot, nowMs())
   readonly property string planLabel: {
@@ -65,7 +74,7 @@ Card {
   }
 
   function errorText() {
-    const msg = Format.errorMessage(usage, provider, nowMs(), !!exhaustedWindow);
+    const msg = Format.errorMessage(usage, provider, nowMs(), frozen || !!exhaustedWindow);
     return msg ? tr(msg.key, msg.vars) : "";
   }
 
@@ -96,6 +105,7 @@ Card {
       }
 
       NText {
+        // The badge and the email tell accounts apart; the bar tooltip keeps the full name.
         text: root.tr("provider." + root.provider)
         font.weight: Style.fontWeightSemiBold
         pointSize: Style.fontSizeM
@@ -114,17 +124,36 @@ Card {
       }
 
       NText {
-        visible: root.hasSnapshot && !(root.usage && root.usage.stale)
+        // A frozen account's last status is the point, so its age stays visible.
+        visible: root.hasSnapshot && (root.frozen || !(root.usage && root.usage.stale))
         text: {
-          const mins = root.snapshot ? Format.minutesAgo(root.snapshot.fetchedAt, root.nowMs()) : 0;
-          return mins === 0 ? root.tr("panel.updated-now") : root.tr("panel.updated", { n: mins });
+          const fetchedAt = root.snapshot ? root.snapshot.fetchedAt : root.nowMs();
+          if (Format.minutesAgo(fetchedAt, root.nowMs()) === 0)
+            return root.tr("panel.updated-now");
+          return root.tr("panel.updated", { t: Format.ago(fetchedAt, root.nowMs()) });
         }
         pointSize: Style.fontSizeXS
         color: Color.mOnSurfaceVariant
       }
 
       Rectangle {
-        visible: !!(root.usage && root.usage.stale)
+        visible: root.frozen
+        radius: height / 2
+        color: Qt.alpha(Color.mPrimary, 0.18)
+        implicitWidth: frozenLabel.implicitWidth + Style.marginS * 2
+        implicitHeight: frozenLabel.implicitHeight + Math.round(2 * Style.uiScaleRatio)
+
+        NText {
+          id: frozenLabel
+          anchors.centerIn: parent
+          text: root.tr("panel.frozen")
+          pointSize: Style.fontSizeXS
+          color: Color.mPrimary
+        }
+      }
+
+      Rectangle {
+        visible: !root.frozen && !!(root.usage && root.usage.stale)
         radius: height / 2
         color: Qt.alpha(Color.mError, 0.18)
         implicitWidth: staleLabel.implicitWidth + Style.marginS * 2
@@ -136,6 +165,69 @@ Card {
           text: root.tr("panel.stale")
           pointSize: Style.fontSizeXS
           color: Color.mError
+        }
+      }
+    }
+
+    RowLayout {
+      visible: root.email !== "" || root.accounts.length > 1
+      width: parent.width
+      spacing: Style.marginS
+
+      NText {
+        Layout.fillWidth: true
+        text: root.email
+        elide: Text.ElideRight
+        pointSize: Style.fontSizeXS
+        color: Color.mOnSurfaceVariant
+      }
+
+      // "Ativa · Congelada": small text switch, the shown account in primary.
+      Repeater {
+        model: root.accounts.length > 1 ? root.accounts : []
+
+        RowLayout {
+          id: switchItem
+          required property var modelData
+          required property int index
+          readonly property bool current: index === root.accountIndex
+          spacing: Style.marginS
+
+          NText {
+            visible: switchItem.index > 0
+            text: "·"
+            pointSize: Style.fontSizeXS
+            color: Color.mOnSurfaceVariant
+          }
+
+          NText {
+            id: switchLabel
+            text: switchItem.modelData.frozen ? switchItem.modelData.name : root.tr("panel.active")
+            pointSize: Style.fontSizeXS
+            font.weight: switchItem.current ? Style.fontWeightSemiBold : Style.fontWeightRegular
+            font.underline: switchMouse.containsMouse || activeFocus
+            color: switchItem.current ? Color.mPrimary : Color.mOnSurfaceVariant
+            activeFocusOnTab: true
+
+            Accessible.role: Accessible.Button
+            Accessible.name: text
+            Accessible.checked: switchItem.current
+
+            Keys.onPressed: function (event) {
+              if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
+                root.accountSelected(switchItem.index);
+                event.accepted = true;
+              }
+            }
+
+            MouseArea {
+              id: switchMouse
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: root.accountSelected(switchItem.index)
+            }
+          }
         }
       }
     }

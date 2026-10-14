@@ -6,7 +6,8 @@ import qs.Services.UI
 import "utils/pace.js" as Pace
 import "utils/format.js" as Format
 
-// Bar entry for the selected provider: percent, reset countdown and a progress bar.
+// Bar entry for the selected source (a Claude account or Grok): percent, reset
+// countdown and a progress bar. Middle click cycles through the sources.
 Item {
   id: root
 
@@ -18,14 +19,19 @@ Item {
   property int sectionWidgetsCount: 0
 
   readonly property var main: pluginApi?.mainInstance ?? null
-  readonly property string provider: main?.setting("barProvider") === "grok" ? "grok" : "claude"
-  readonly property var usage: provider === "grok" ? main?.grok : main?.claude
-  readonly property var win: Pace.primaryWindow(usage?.snapshot)
+  readonly property string sourceKey: main?.barKey ?? "claude"
+  readonly property var source: main ? main.sourceOf(sourceKey) : null
+  readonly property string provider: source?.provider ?? "claude"
+  readonly property var usage: main ? main.stateOf(sourceKey) : null
+  readonly property bool multiAccount: (main?.sources.length ?? 0) > 2
+  readonly property bool frozen: source?.frozen ?? false
+  readonly property var snapshot: Pace.project(usage ? usage.snapshot : null, nowMs())
+  readonly property var win: Pace.primaryWindow(snapshot)
   readonly property string usageStatus: Pace.status(win, nowMs())
   readonly property bool barIsVertical: (Settings.data.bar.position || "top") === "left" || Settings.data.bar.position === "right"
   readonly property string iconName: provider === "grok" ? "brand-x" : "asterisk"
   readonly property string barLabel: Format.barText(win, nowMs())
-  readonly property string providerName: tr("provider." + provider)
+  readonly property string providerName: main ? main.sourceName(sourceKey) : tr("provider." + provider)
   // The panel remembers the item that opened it, so this follows open/close from any path.
   readonly property bool panelOpen: PanelService.openedPanel !== null && PanelService.openedPanel.buttonItem === root
   readonly property bool highlighted: mouseArea.containsMouse || panelOpen
@@ -37,11 +43,11 @@ Item {
     return Math.min(100, Math.max(0, p)) / 100;
   }
   readonly property string tooltipText: {
-    const lines = [];
-    const windows = usage && usage.snapshot ? usage.snapshot.windows || [] : [];
+    const lines = multiAccount ? [providerName] : [];
+    const windows = snapshot ? snapshot.windows || [] : [];
     for (let i = 0; i < windows.length; i++)
       lines.push(windowLine(windows[i]));
-    const limit = Format.limitMessage(Pace.exhausted(usage ? usage.snapshot : null, nowMs()), nowMs());
+    const limit = Format.limitMessage(Pace.exhausted(snapshot, nowMs()), nowMs());
     if (limit)
       lines.push(tr(limit.key, limit.vars));
     const err = errorText();
@@ -71,8 +77,8 @@ Item {
   }
 
   function errorText() {
-    const limited = !!Pace.exhausted(usage ? usage.snapshot : null, nowMs());
-    const msg = Format.errorMessage(usage, provider, nowMs(), limited);
+    const quiet = frozen || !!Pace.exhausted(snapshot, nowMs());
+    const msg = Format.errorMessage(usage, provider, nowMs(), quiet);
     return msg ? tr(msg.key, msg.vars) : "";
   }
 

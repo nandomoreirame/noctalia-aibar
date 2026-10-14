@@ -5,7 +5,7 @@ import qs.Widgets
 import "components"
 import "components/ui"
 
-// Both providers, independent of which one the bar is showing.
+// Every source, independent of which one the bar is showing.
 Item {
   id: root
 
@@ -14,6 +14,11 @@ Item {
   readonly property var geometryPlaceholder: panelContainer
   readonly property bool allowAttach: true
   readonly property var main: pluginApi?.mainInstance ?? null
+
+  readonly property var claudeSources: main ? main.sources.filter(s => s.provider === "claude") : []
+  readonly property var otherSources: main ? main.sources.filter(s => s.provider !== "claude") : []
+  property int claudeTab: 0
+  readonly property int claudeIndex: Math.max(0, Math.min(claudeTab, claudeSources.length - 1))
 
   readonly property int panelMargin: Math.round(10 * Style.uiScaleRatio)
 
@@ -57,21 +62,32 @@ Item {
 
         PillButton {
           icon: "refresh"
-          busy: (root.main?.claude.inFlight ?? false) || (root.main?.grok.inFlight ?? false)
+          busy: root.main ? root.main.sources.some(s => root.main.stateOf(s.key).inFlight) : false
           enabled: !busy
           tooltipText: root.tr("panel.refresh")
           onClicked: root.main?.refresh()
         }
       }
 
+      // Claude accounts share one card, switched inside it. The panel is rebuilt
+      // on open, so it starts on the active account.
       ProviderCard {
-        provider: "claude"
+        visible: root.claudeSources.length > 0
+        sourceKey: root.claudeSources.length > 0 ? root.claudeSources[root.claudeIndex].key : "claude"
+        accounts: root.claudeSources
+        accountIndex: root.claudeIndex
         pluginApi: root.pluginApi
+        onAccountSelected: index => root.claudeTab = index
       }
 
-      ProviderCard {
-        provider: "grok"
-        pluginApi: root.pluginApi
+      Repeater {
+        model: root.otherSources
+
+        ProviderCard {
+          required property var modelData
+          sourceKey: modelData.key
+          pluginApi: root.pluginApi
+        }
       }
     }
   }
