@@ -1,0 +1,54 @@
+{
+  "title": "AI Bar",
+  "provider": { "claude": "Claude Code", "grok": "Grok" },
+  "window": {
+    "session": "Sessão (5h)",
+    "weekly": "Semanal",
+    "weekly-opus": "Semanal Opus",
+    "weekly-sonnet": "Semanal Sonnet",
+    "period-weekly": "Semanal",
+    "period-monthly": "Mensal",
+    "extra": "Uso extra"
+  },
+  "pace": { "ahead": "{n} pts à frente", "behind": "{n} pts atrás", "on": "no ritmo" },
+  "panel": {
+    "title": "Uso de IA",
+    "refresh": "Atualizar",
+    "updated": "atualizado há {t}",
+    "active": "Ativa",
+    "frozen": "congelada",
+    "updated-now": "atualizado agora",
+    "stale": "desatualizado",
+    "resets": "reinicia em {t}",
+    "no-data": "Sem dados ainda",
+    "limit-reached": "Limite atingido: reinicia em {t}"
+  },
+  "error": {
+    "claude-login": "Rode `claude` para entrar",
+    "claude-expired": "Token do Claude expirou: abra o `claude` para renovar",
+    "grok-login": "Rode `grok login`",
+    "grok-format": "Formato inesperado do billing do Grok",
+    "network": "Erro de rede",
+    "http": "HTTP {code}",
+    "rate-limited": "Limite de requisições, nova tentativa em {n} min",
+    "parse": "Resposta inesperada"
+  },
+  "format": { "decimal": "," },
+  "notify": { "title": "{provider}: {window} em {n}%", "body": "Reinicia em {t}" },
+  "settings": {
+    "bar_provider": {
+      "label": "Provedor na barra",
+      "description": "Fonte exibida na barra: claude, grok ou claude:<nome>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
+    },
+    "poll_minutes": { "label": "Atualizar a cada (minutos)" },
+    "notify_threshold": { "label": "Avisar em (%)", "description": "0 desliga os avisos." },
+    "claude_user_agent": {
+      "label": "User-Agent do Claude",
+      "description": "Precisa parecer um Claude Code CLI publicado, senão o endpoint limita as requisições."
+    },
+    "claude_accounts": {
+      "label": "Contas congeladas do Claude",
+      "description": "Um Nome=diretório por item. O painel mostra o último status delas. Exemplo: Congelada=~/.claude-freeze"
+    }
+  }
+}

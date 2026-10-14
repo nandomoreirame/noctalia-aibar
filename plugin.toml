@@ -1,0 +1,69 @@
+id = "nandomoreirame/aibar"
+name = "AI Bar"
+version = "0.2.0"
+plugin_api = 22
+author = "Fernando Moreira Costa"
+license = "MIT"
+icon = "chart-bar"
+description = "Claude Code and Grok plan usage in the bar: percent, reset countdown and a progress bar."
+tags = ["ai", "usage", "claude", "grok"]
+dependencies = []
+
+[[setting]]
+key = "bar_provider"
+type = "string"
+label_key = "settings.bar_provider.label"
+description_key = "settings.bar_provider.description"
+default = "claude"
+
+[[setting]]
+key = "poll_minutes"
+type = "int"
+label_key = "settings.poll_minutes.label"
+min = 2
+max = 60
+default = 5
+
+[[setting]]
+key = "notify_threshold"
+type = "int"
+label_key = "settings.notify_threshold.label"
+description_key = "settings.notify_threshold.description"
+min = 0
+max = 100
+default = 97
+
+[[setting]]
+key = "claude_user_agent"
+type = "string"
+label_key = "settings.claude_user_agent.label"
+description_key = "settings.claude_user_agent.description"
+default = "claude-cli/2.1.281 (external, cli)"
+advanced = true
+
+[[setting]]
+key = "claude_accounts"
+type = "string_list"
+label_key = "settings.claude_accounts.label"
+description_key = "settings.claude_accounts.description"
+default = []
+
+[[service]]
+id = "usage"
+entry = "service.luau"
+
+[[widget]]
+id = "bar"
+entry = "widget.luau"
+
+# Middle click cycles the bar source (onMiddleClick) instead of opening settings.
+[widget.actions]
+middle = "none"
+
+[[panel]]
+id = "panel"
+entry = "panel.luau"
+width = 400
+height = 560
+placement = "attached"
+open_near_click = true

@@ -1,0 +1,1 @@
+-- Bar widget. Rendering lands with the widget tests.
