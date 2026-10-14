@@ -28,6 +28,8 @@ local cache = { byAccount = {} }
 local barKey = "claude"
 local lastBarSetting = ""
 local nextPollAt = 0
+local lastPollAt = 0
+local lastUserAgent = ""
 
 local function now(): number
 	return noctalia.nowMs()
@@ -167,9 +169,13 @@ local function pollSource(source: any): boolean
 	return true
 end
 
+local function interval(): number
+	return math.max(2, tonumber(noctalia.getConfig("poll_minutes")) or 5) * 60000
+end
+
 local function pollAll()
-	local minutes = math.max(2, tonumber(noctalia.getConfig("poll_minutes")) or 5)
-	nextPollAt = now() + minutes * 60000
+	lastPollAt = now()
+	nextPollAt = lastPollAt + interval()
 	for _, s in sources do
 		pollSource(s)
 	end
@@ -313,6 +319,7 @@ local function start()
 	loadCache()
 	configure()
 	lastBarSetting = tostring(noctalia.getConfig("bar_provider") or "")
+	lastUserAgent = tostring(noctalia.getConfig("claude_user_agent") or "")
 	local selection = decodeFile(dataPath("selection.json"))
 	barKey = view.initialKey(sources, if typeof(selection) == "table" then selection.key else nil, lastBarSetting)
 	pollAll()
@@ -377,6 +384,18 @@ function onConfigChanged()
 	for _, s in fresh do
 		pollSource(s)
 	end
+	-- A new User-Agent may cure a 429 storm: retry Claude (backoff still applies).
+	local userAgent = tostring(noctalia.getConfig("claude_user_agent") or "")
+	if userAgent ~= lastUserAgent then
+		lastUserAgent = userAgent
+		for _, s in sources do
+			if s.provider == "claude" then
+				pollSource(s)
+			end
+		end
+	end
+	-- poll_minutes may have changed: count the new interval from the last poll.
+	nextPollAt = lastPollAt + interval()
 	publish()
 end
 
