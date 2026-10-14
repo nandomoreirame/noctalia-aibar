@@ -1,0 +1,106 @@
+#!/usr/bin/env bash
+# Swaps the active Claude Code login (~/.claude) with the frozen one
+# (~/.claude-freeze). Only the login moves: .credentials.json and the
+# oauthAccount block of .claude.json. Settings, skills, memory, MCP servers and
+# projects stay in ~/.claude and ~/.claude.json for both accounts.
+#
+#   claude-swap          swap the two accounts
+#   claude-swap status   show which account is active and which is frozen
+#   claude-swap init     freeze the current login, leaving ~/.claude logged out
+#
+# Runs only with no claude process open: a running session renews its token
+# and would write it back over the swapped login. Tokens are moved, never
+# printed or copied.
+set -eo pipefail
+
+ACTIVE_CRED="$HOME/.claude/.credentials.json"
+ACTIVE_CONFIG="$HOME/.claude.json"
+FREEZE_DIR="$HOME/.claude-freeze"
+FREEZE_CRED="$FREEZE_DIR/.credentials.json"
+FREEZE_CONFIG="$FREEZE_DIR/.claude.json"
+
+die() {
+  echo "claude-swap: $*" >&2
+  exit 1
+}
+
+email() {
+  jq -r '.oauthAccount.emailAddress // "?"' "$1" 2>/dev/null || echo "?"
+}
+
+has_account() {
+  [ -f "$1" ] && jq -e '.oauthAccount.accountUuid | strings | length > 0' "$1" >/dev/null 2>&1
+}
+
+require_closed() {
+  if pgrep -x claude >/dev/null; then
+    die "close every claude session first (a running one would overwrite the swapped login)"
+  fi
+}
+
+# Writes stdin to $1 through a temp file in the same dir, mode 600.
+write_private() {
+  local tmp
+  tmp=$(mktemp "$(dirname "$1")/.swap.XXXXXX")
+  chmod 600 "$tmp"
+  cat > "$tmp"
+  [ -s "$tmp" ] || { rm -f "$tmp"; die "empty write to $1"; }
+  mv -f "$tmp" "$1"
+}
+
+status() {
+  echo "ativa:     $(email "$ACTIVE_CONFIG")"
+  echo "congelada: $(email "$FREEZE_CONFIG")"
+}
+
+swap() {
+  require_closed
+  [ -f "$ACTIVE_CRED" ] || die "no login in ~/.claude (run claude and log in)"
+  [ -f "$FREEZE_CRED" ] || die "no frozen login in $FREEZE_DIR (run claude-swap init)"
+  has_account "$ACTIVE_CONFIG" || die "no oauthAccount in ~/.claude.json"
+  has_account "$FREEZE_CONFIG" || die "no oauthAccount in $FREEZE_CONFIG"
+  [ ! -L "$ACTIVE_CONFIG" ] || die "~/.claude.json is a symlink, refusing to rewrite it"
+
+  local active_account frozen_account
+  active_account=$(jq -c '.oauthAccount' "$ACTIVE_CONFIG")
+  frozen_account=$(jq -c '.oauthAccount' "$FREEZE_CONFIG")
+
+  # Accounts first, logins second: the bar reads the account id before the
+  # new token, so it never files one account's usage under the other.
+  jq --argjson a "$frozen_account" '.oauthAccount = $a' "$ACTIVE_CONFIG" | write_private "$ACTIVE_CONFIG"
+  jq -n --argjson a "$active_account" '{ oauthAccount: $a }' | write_private "$FREEZE_CONFIG"
+
+  local held="$FREEZE_DIR/.swap-held.json"
+  mv -f "$ACTIVE_CRED" "$held"
+  mv -f "$FREEZE_CRED" "$ACTIVE_CRED"
+  mv -f "$held" "$FREEZE_CRED"
+
+  status
+}
+
+init() {
+  require_closed
+  [ -f "$ACTIVE_CRED" ] || die "no login in ~/.claude to freeze"
+  has_account "$ACTIVE_CONFIG" || die "no oauthAccount in ~/.claude.json"
+  [ ! -e "$FREEZE_CRED" ] || die "$FREEZE_DIR already holds a login"
+  mkdir -p "$FREEZE_DIR"
+  chmod 700 "$FREEZE_DIR"
+
+  local active_account
+  active_account=$(jq -c '.oauthAccount' "$ACTIVE_CONFIG")
+  jq -n --argjson a "$active_account" '{ oauthAccount: $a }' | write_private "$FREEZE_CONFIG"
+  jq 'del(.oauthAccount)' "$ACTIVE_CONFIG" | write_private "$ACTIVE_CONFIG"
+  mv -f "$ACTIVE_CRED" "$FREEZE_CRED"
+
+  echo "congelada: $(email "$FREEZE_CONFIG")"
+  echo "run claude and log in with the other account"
+}
+
+command -v jq >/dev/null || die "jq is required"
+
+case "${1:-}" in
+  "") swap ;;
+  status) status ;;
+  init) init ;;
+  *) die "usage: claude-swap [status|init]" ;;
+esac
