@@ -18,16 +18,25 @@ local function slug(name: string): string
 	return (string.gsub(s, "^%-+", ""):gsub("%-+$", ""))
 end
 
+-- Account names are cut at MAX_NAME characters (UTF-8 aware) and trimmed.
+local function capName(name: string): string
+	local cut = utf8.offset(name, Accounts.MAX_NAME + 1)
+	if cut then
+		name = string.sub(name, 1, cut - 1)
+	end
+	return trim(name)
+end
+
 -- A bar_provider value -> source key: "claude:Trabalho Pessoal" -> "claude:trabalho-pessoal".
 function Accounts.normalizeKey(value: any): string
 	if typeof(value) ~= "string" then
 		return ""
 	end
-	local text = string.lower(trim(value))
-	if string.sub(text, 1, 7) == "claude:" then
-		return "claude:" .. slug(string.sub(text, 8))
+	local text = trim(value)
+	if string.lower(string.sub(text, 1, 7)) == "claude:" then
+		return "claude:" .. slug(capName(trim(string.sub(text, 8))))
 	end
-	return text
+	return string.lower(text)
 end
 
 local function validDir(dir: string): boolean
@@ -68,11 +77,7 @@ function Accounts.parseAccounts(value: any)
 	for _, entry in entries do
 		local eq = string.find(entry, "=", 1, true)
 		if eq then
-			local name = trim(string.sub(entry, 1, eq - 1))
-			local cut = utf8.offset(name, Accounts.MAX_NAME + 1)
-			if cut then
-				name = trim(string.sub(name, 1, cut - 1))
-			end
+			local name = capName(trim(string.sub(entry, 1, eq - 1)))
 			local dir = (string.gsub(trim(string.sub(entry, eq + 1)), "/+$", ""))
 			local id = slug(name)
 			if id ~= "" and validDir(dir) and dir ~= DEFAULT_DIR and not seen[id] then

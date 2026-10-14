@@ -128,4 +128,10 @@ describe("accounts.normalizeKey", function()
 		assert.equal(accounts.normalizeKey("claude"), "claude")
 		assert.equal(accounts.normalizeKey(nil), "")
 	end)
+
+	it("caps the account name like parseAccounts", function()
+		local key = accounts.parseAccounts({ "Conta Trabalho Principal X=~/.claude-t" })[1].key
+		assert.equal(key, "claude:conta-trabalho-principal")
+		assert.equal(accounts.normalizeKey("claude:Conta Trabalho Principal X"), key)
+	end)
 end)
