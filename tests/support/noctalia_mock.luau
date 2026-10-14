@@ -33,6 +33,9 @@ export type MockOpts = {
 	colors: { [string]: string }?,
 	pluginDataDir: string?,
 	fs: { [string]: string }?,
+	now: number?,
+	fileInfo: { [string]: any }?,
+	vertical: boolean?,
 }
 
 type CallLog = { [string]: { { any } } }
@@ -46,6 +49,10 @@ type EnvPrivate = {
 	pluginDataDir: string,
 	state: { [string]: any },
 	watchers: { [string]: { (any) -> () } },
+	now: number,
+	http: { any },
+	fileInfo: { [string]: any },
+	vertical: boolean,
 }
 
 -- Side table: env identity -> private state (keeps host env clean for setfenv).
@@ -445,6 +452,23 @@ local function asyncKey(cmdOrArgv: any): string
 	return tostring(cmdOrArgv)
 end
 
+-- Test translator: the key, then " name=value" for each substitution in name order.
+local function fakeTr(key: string, subst: any?): string
+	if typeof(subst) ~= "table" then
+		return key
+	end
+	local names = {}
+	for name in subst do
+		table.insert(names, tostring(name))
+	end
+	table.sort(names)
+	local out = key
+	for _, name in names do
+		out ..= " " .. name .. "=" .. tostring(subst[name])
+	end
+	return out
+end
+
 local function buildNoctalia(priv: EnvPrivate): any
 	local stateApi = guardTable("noctalia.state", {
 		set = function(key: string, value: any)
@@ -555,7 +579,7 @@ local function buildNoctalia(priv: EnvPrivate): any
 		end,
 		nowMs = function(): number
 			record(priv, "noctalia.nowMs", {})
-			return 0
+			return priv.now
 		end,
 		copyToClipboard = recorder(priv, "noctalia.copyToClipboard", "true"),
 		clipboardText = recorder(priv, "noctalia.clipboardText", "nil"),
@@ -606,6 +630,14 @@ local function buildNoctalia(priv: EnvPrivate): any
 			record(priv, "noctalia.fileExists", { path })
 			return priv.fs[path] ~= nil
 		end,
+		fileInfo = function(path: string): (any, string?)
+			record(priv, "noctalia.fileInfo", { path })
+			local info = priv.fileInfo[path]
+			if info == nil then
+				return nil, "not found: " .. path
+			end
+			return info, nil
+		end,
 		mkdirAll = function(path: string): (boolean, string?)
 			record(priv, "noctalia.mkdirAll", { path })
 			priv.fs[path] = true
@@ -627,9 +659,9 @@ local function buildNoctalia(priv: EnvPrivate): any
 			record(priv, "noctalia.pluginDataDir", {})
 			return priv.pluginDataDir
 		end,
-		tr = function(key: string, _subst: any?): string
-			record(priv, "noctalia.tr", { key })
-			return key
+		tr = function(key: string, subst: any?): string
+			record(priv, "noctalia.tr", { key, subst })
+			return fakeTr(key, subst)
 		end,
 		fuzzyScore = function(pattern: string, text: string): number?
 			record(priv, "noctalia.fuzzyScore", { pattern, text })
@@ -638,7 +670,11 @@ local function buildNoctalia(priv: EnvPrivate): any
 			end
 			return nil
 		end,
-		http = recorder(priv, "noctalia.http", "true"),
+		http = function(request: any, cb: any): boolean
+			record(priv, "noctalia.http", { request, cb })
+			table.insert(priv.http, { request = request, cb = cb })
+			return true
+		end,
 		download = recorder(priv, "noctalia.download", "true"),
 		json = jsonApi,
 		string = stringApi,
@@ -659,7 +695,7 @@ local function buildBarWidget(priv: EnvPrivate): any
 		setVisible = recorder(priv, "barWidget.setVisible"),
 		isVertical = function(): boolean
 			record(priv, "barWidget.isVertical", {})
-			return false
+			return priv.vertical
 		end,
 		outputName = recorder(priv, "barWidget.outputName", "nil"),
 		render = recorder(priv, "barWidget.render", "first"),
@@ -687,11 +723,7 @@ local function buildUi(priv: EnvPrivate): any
 	local function ctor(name: string): (...any) -> any
 		return function(props: any, children: any?): any
 			record(priv, "ui." .. name, { props, children })
-			-- Recording no-op returning props (plan: panel/ui/desktopWidget return props)
-			if typeof(props) == "table" then
-				return props
-			end
-			return { __ui = name, props = props, children = children }
+			return { type = name, props = props or {}, children = children or {} }
 		end
 	end
 
@@ -708,6 +740,12 @@ local function buildUi(priv: EnvPrivate): any
 		slider = ctor("slider"),
 		toggle = ctor("toggle"),
 		icon = ctor("icon"),
+		glyph = ctor("glyph"),
+		progress = ctor("progress"),
+		separator = ctor("separator"),
+		markdown = ctor("markdown"),
+		select = ctor("select"),
+		input = ctor("input"),
 	})
 end
 
@@ -739,15 +777,26 @@ end
 
 function Mock.new(opts: MockOpts?): any
 	local o = opts or {}
+	local fs = copyMap(o.fs)
+	local fileInfo = copyMap(o.fileInfo)
+	for path, content in fs do
+		if typeof(content) == "string" and fileInfo[path] == nil then
+			fileInfo[path] = { size = #content, mtime = 1, isDir = false }
+		end
+	end
 	local priv: EnvPrivate = {
 		calls = {},
 		config = copyMap(o.config),
 		async = copyMap(o.async :: any) :: any,
 		colors = copyMap(o.colors),
-		fs = copyMap(o.fs),
+		fs = fs,
 		pluginDataDir = o.pluginDataDir or "/mock/plugin-data",
 		state = {},
 		watchers = {},
+		now = o.now or 0,
+		http = {},
+		fileInfo = fileInfo,
+		vertical = o.vertical == true,
 	}
 
 	local env = {
@@ -768,11 +817,49 @@ function Mock.install(opts: MockOpts?): any
 	return Mock.new(opts)
 end
 
-function Mock.calls(env: any, path: string): { { any } }
+local function privOf(env: any): EnvPrivate
 	local priv = privateByEnv[env]
 	if priv == nil then
-		error("mock.calls: env was not created by mock.new/install", 2)
+		error("mock: env was not created by mock.new/install", 3)
 	end
+	return priv
+end
+
+Mock.json = { encode = jsonEncode, decode = jsonDecode }
+Mock.fakeTr = fakeTr
+
+function Mock.pendingHttp(env: any): { any }
+	return privOf(env).http
+end
+
+function Mock.respond(env: any, index: number, response: any)
+	local call = privOf(env).http[index]
+	if call == nil then
+		error(string.format("mock.respond: no http call #%d", index), 2)
+	end
+	call.cb(response)
+end
+
+function Mock.setNow(env: any, ms: number)
+	privOf(env).now = ms
+end
+
+function Mock.setFile(env: any, path: string, content: string, mtime: number)
+	local priv = privOf(env)
+	priv.fs[path] = content
+	priv.fileInfo[path] = { size = #content, mtime = mtime, isDir = false }
+end
+
+function Mock.setConfig(env: any, key: string, value: any)
+	privOf(env).config[key] = value
+end
+
+function Mock.setVertical(env: any, vertical: boolean)
+	privOf(env).vertical = vertical
+end
+
+function Mock.calls(env: any, path: string): { { any } }
+	local priv = privOf(env)
 	local bucket = priv.calls[path]
 	if bucket == nil then
 		return {}
