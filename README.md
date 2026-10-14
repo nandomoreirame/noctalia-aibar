@@ -3,6 +3,10 @@
 AI Bar shows Claude Code and Grok (SuperGrok / Grok Build) plan usage in the
 Noctalia bar and in a panel: percent, reset countdown and a progress bar.
 
+This branch is the Noctalia v5 plugin (Luau, `plugin.toml`). The Noctalia v4
+plugin (QML, for noctalia-shell 4.7.x) is frozen at v0.1.3 on branch
+[`legacy-v4`](https://github.com/nandomoreirame/noctalia-aibar/tree/legacy-v4).
+
 ![AI Bar panel](screenshots/panel.png)
 
 ## Plugin
@@ -81,11 +85,9 @@ skills, memory, MCP servers and projects stay put. List any extra login in
 Frozen Claude accounts so the panel can show its last status on its own tab.
 After a swap, the card follows the account that is now active.
 
-**v4.** The QML version lives on branch `legacy-v4` (v0.1.3) for noctalia-shell 4.7.x.
-
 ## Known gaps
 
-Differences from the v4 version that the v5 plugin API does not allow today:
+Differences from the [v4 version](https://github.com/nandomoreirame/noctalia-aibar/tree/legacy-v4) that the v5 plugin API does not allow today:
 
 - The bar widget is not highlighted while its panel is open (the host owns that state in v5).
 - The panel height does not follow its content; long content scrolls inside a fixed height.
