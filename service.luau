@@ -263,13 +263,19 @@ local function refresh()
 	publish()
 end
 
--- Forget everything about a key: identity, state, pending mark, and any answer
--- still in flight (its generation no longer matches).
+-- Forget everything about a key: identity, state, pending mark, fired
+-- notifications, and any answer still in flight (its generation no longer matches).
 local function resetSource(key: string)
 	identities[key] = nil
 	states[key] = nil
 	pending[key] = nil
 	generation[key] = (generation[key] or 0) + 1
+	local prefix = key .. "|"
+	for k in armed do
+		if string.sub(k, 1, #prefix) == prefix then
+			armed[k] = nil
+		end
+	end
 end
 
 -- Start watching a path without consuming a change update() has not seen.

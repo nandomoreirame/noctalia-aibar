@@ -296,6 +296,30 @@ describe("service settings changes", function()
 		assert.equal(h.header(s, c[#c], "Authorization:"), "Authorization: Bearer SECRET-B")
 	end)
 
+	it("notifies again for an account whose dir moved", function()
+		local s = h.boot({
+			config = { notify_threshold = 10, claude_accounts = { "Work=~/.claude-a" } },
+			fs = {
+				["~/.claude-a/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-A","expiresAt":1891662400000}}',
+				["~/.claude-b/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-B","expiresAt":1891662400000}}',
+			},
+		})
+		local function answerWork(token)
+			for _, i in h.requests(s, h.CLAUDE_URL) do
+				if h.header(s, i, "Authorization:") == "Authorization: Bearer " .. token then
+					mock.respond(s.env, i, { ok = true, status = 200, body = h.CLAUDE_BODY })
+				end
+			end
+		end
+		answerWork("SECRET-A")
+		local before = #mock.calls(s.env, "noctalia.notify")
+		assert.equal(before > 0, true)
+		mock.setConfig(s.env, "claude_accounts", { "Work=~/.claude-b" })
+		s.call("onConfigChanged")
+		answerWork("SECRET-B")
+		assert.equal(#mock.calls(s.env, "noctalia.notify"), before * 2)
+	end)
+
 	it("does not swallow a credential change seen first by a settings change", function()
 		local s = answered()
 		local before = #h.requests(s, h.CLAUDE_URL)
