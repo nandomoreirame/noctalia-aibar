@@ -182,3 +182,63 @@ describe("service file fingerprints", function()
 		assert.equal(#h.requests(s, h.CLAUDE_URL), 2)
 	end)
 end)
+
+describe("service settings changes", function()
+	local function answered()
+		local s = h.boot({
+			config = { claude_accounts = { "Work=~/.claude-a" } },
+			fs = {
+				["~/.claude-a/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-A","expiresAt":1891662400000}}',
+				["~/.claude-a/.claude.json"] = '{"oauthAccount":{"accountUuid":"u7","emailAddress":"w@x.dev"}}',
+				["~/.claude-b/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-B","expiresAt":1891662400000}}',
+				["~/.claude-n/.credentials.json"] = '{"claudeAiOauth":{"accessToken":"SECRET-N","expiresAt":1891662400000}}',
+			},
+		})
+		for i = 1, #mock.pendingHttp(s.env) do
+			mock.respond(s.env, i, { ok = true, status = 500, body = "" })
+		end
+		return s
+	end
+
+	it("does not poll when an unrelated setting changes", function()
+		local s = answered()
+		local before = #mock.pendingHttp(s.env)
+		mock.setConfig(s.env, "notify_threshold", 50)
+		s.call("onConfigChanged")
+		assert.equal(#mock.pendingHttp(s.env), before)
+	end)
+
+	it("polls only an added account", function()
+		local s = answered()
+		local before = #mock.pendingHttp(s.env)
+		mock.setConfig(s.env, "claude_accounts", { "Work=~/.claude-a", "New=~/.claude-n" })
+		s.call("onConfigChanged")
+		local calls = mock.pendingHttp(s.env)
+		assert.equal(#calls, before + 1)
+		local found = false
+		for _, line in calls[#calls].request.headers do
+			if line == "Authorization: Bearer SECRET-N" then
+				found = true
+			end
+		end
+		assert.equal(found, true)
+	end)
+
+	it("resets an account whose dir changed", function()
+		local s = answered()
+		assert.equal(h.sourceOf(s, "claude:work").email, "w@x.dev")
+		mock.setConfig(s.env, "claude_accounts", { "Work=~/.claude-b" })
+		s.call("onConfigChanged")
+		local work = h.sourceOf(s, "claude:work")
+		assert.equal(work.email, "")
+		assert.equal(work.error, "")
+		local calls = mock.pendingHttp(s.env)
+		local found = false
+		for _, line in calls[#calls].request.headers do
+			if line == "Authorization: Bearer SECRET-B" then
+				found = true
+			end
+		end
+		assert.equal(found, true)
+	end)
+end)
