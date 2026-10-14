@@ -28,6 +28,20 @@ function primaryWindow(snapshot) {
   return snapshot.windows[0];
 }
 
+// A cached snapshot can outlive its windows: one whose reset passed is shown as
+// 0% without bounds (the next period starts on first use). Same object when
+// nothing reset.
+function project(snapshot, nowMs) {
+  if (!snapshot || !snapshot.windows) return snapshot;
+  let changed = false;
+  const windows = snapshot.windows.map((w) => {
+    if (w.end === null || w.end === undefined || w.end > nowMs) return w;
+    changed = true;
+    return Object.assign({}, w, { percent: 0, start: null, end: null });
+  });
+  return changed ? Object.assign({}, snapshot, { windows: windows }) : snapshot;
+}
+
 // The window at 100% that unblocks last, or null. Windows already reset or
 // without an end are skipped: a cached snapshot can outlive them.
 function exhausted(snapshot, nowMs) {

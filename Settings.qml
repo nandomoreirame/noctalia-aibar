@@ -2,6 +2,7 @@ import QtQuick 6.11
 import QtQuick.Layouts 6.11
 import qs.Commons
 import qs.Widgets
+import "utils/accounts.js" as Accounts
 
 // Plugin settings. Noctalia calls saveSettings() when the dialog is confirmed.
 ColumnLayout {
@@ -13,6 +14,7 @@ ColumnLayout {
   property int pollMinutes: 5
   property int notifyThreshold: 97
   property string claudeUserAgent: ""
+  property string claudeAccounts: ""
 
   spacing: Style.marginM
 
@@ -33,6 +35,7 @@ ColumnLayout {
     const threshold = Number(value("notifyThreshold"));
     notifyThreshold = threshold === threshold ? threshold : 97;
     claudeUserAgent = String(value("claudeUserAgent") || "");
+    claudeAccounts = String(value("claudeAccounts") || "");
   }
 
   function saveSettings() {
@@ -43,6 +46,7 @@ ColumnLayout {
     saved.pollMinutes = pollMinutes;
     saved.notifyThreshold = notifyThreshold;
     saved.claudeUserAgent = claudeUserAgent.trim();
+    saved.claudeAccounts = claudeAccounts.trim();
     pluginApi.saveSettings();
   }
 
@@ -52,12 +56,21 @@ ColumnLayout {
   NComboBox {
     label: root.tr("settings.bar-provider")
     description: root.tr("settings.bar-provider-desc")
-    model: [
-      { key: "claude", name: root.tr("provider.claude") },
-      { key: "grok", name: root.tr("provider.grok") }
-    ]
+    model: Accounts.sources(Accounts.parseAccounts(root.claudeAccounts)).map(s => ({
+      key: s.key,
+      name: root.tr("provider." + s.provider) + (s.name ? " · " + s.name : "")
+    }))
     currentKey: root.barProvider
     onSelected: key => root.barProvider = key
+  }
+
+  NTextInput {
+    Layout.fillWidth: true
+    label: root.tr("settings.accounts")
+    description: root.tr("settings.accounts-desc")
+    placeholderText: "Trabalho=~/.claude-trabalho"
+    text: root.claudeAccounts
+    onTextChanged: root.claudeAccounts = text
   }
 
   NSpinBox {
