@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { countdown, percentText, barText, minutesAgo, windowKey, errorMessage, moneyText, limitMessage } from "../utils/format.js";
+import { countdown, percentText, barText, minutesAgo, windowKey, errorMessage, moneyText, limitMessage, ago } from "../utils/format.js";
 
 const M = 60000;
 
@@ -55,6 +55,12 @@ describe("format", () => {
       expect(errorMessage({ error: error }, "grok", 0, true)).toBe(null);
     expect(errorMessage({ error: "network" }, "grok", 0, true)).toEqual({ key: "error.network", vars: null });
     expect(errorMessage({ error: "auth" }, "grok", 0, false)).toEqual({ key: "error.grok-login", vars: null });
+  });
+
+  it("tells how long ago a snapshot was fetched", () => {
+    expect(ago(0, 5 * M)).toBe("5m");
+    expect(ago(0, 125 * M)).toBe("2h5m");
+    expect(ago(0, 3 * 1440 * M)).toBe("3d0h");
   });
 
   it("describes a reached limit with its reset countdown", () => {

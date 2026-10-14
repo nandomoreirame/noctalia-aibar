@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { pace, status, primaryWindow, exhausted } from "../utils/pace.js";
+import { pace, status, primaryWindow, exhausted, project } from "../utils/pace.js";
 
 const H = 3600000;
 
@@ -41,5 +41,25 @@ describe("primaryWindow", () => {
     expect(exhausted({ windows: [{ id: "session", percent: 100, end: H }] }, H)).toBe(null);
     expect(exhausted({ windows: [{ id: "period", percent: 100, end: null }] }, 0)).toBe(null);
     expect(exhausted(null, 0)).toBe(null);
+  });
+});
+
+describe("project", () => {
+  it("shows windows whose reset already passed as 0% without bounds", () => {
+    const snap = { provider: "claude", windows: [
+      { id: "session", percent: 80, start: 0, end: H },
+      { id: "weekly", percent: 97, start: 0, end: 100 * H }
+    ] };
+    const out = project(snap, 2 * H);
+    expect(out.windows[0]).toEqual({ id: "session", percent: 0, start: null, end: null });
+    expect(out.windows[1]).toBe(snap.windows[1]);
+    expect(snap.windows[0].percent).toBe(80);
+  });
+
+  it("returns the same snapshot when nothing reset, and passes junk through", () => {
+    const snap = { windows: [{ id: "session", percent: 5, start: 0, end: H }] };
+    expect(project(snap, 0)).toBe(snap);
+    expect(project(null, 0)).toBe(null);
+    expect(project({ windows: [{ id: "x", percent: 5, end: null }] }, H).windows[0].percent).toBe(5);
   });
 });
