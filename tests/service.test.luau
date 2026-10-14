@@ -1,57 +1,20 @@
 local assert = require("./support/assert")
 local runner = require("./support/runner")
-local modules = require("./support/modules")
 local mock = require("./support/noctalia_mock")
-local entry = require("./support/entry")
+local h = require("./support/service_helpers")
 
 local describe, it = runner.describe, runner.it
 
-local NOW = 1791662400000
-local CLAUDE_URL = "https://api.anthropic.com/api/oauth/usage"
-local GROK_URL = "https://cli-chat-proxy.grok.com/v1/billing?format=credits"
+local NOW = h.NOW
+local CLAUDE_URL = h.CLAUDE_URL
+local GROK_URL = h.GROK_URL
 local DATA = "/mock/plugin-data"
-
-local CLAUDE_CRED = '{"claudeAiOauth":{"accessToken":"SECRET-CLAUDE","expiresAt":1891662400000,"subscriptionType":"max"}}'
-local GROK_AUTH = '{"https://auth.x.ai":{"key":"SECRET-GROK","email":"u@x.dev"}}'
-local CLAUDE_JSON = '{"oauthAccount":{"accountUuid":"u1","emailAddress":"a@x.dev"}}'
-local CLAUDE_BODY = modules.text("tests/fixtures/claude-usage.json")
-local GROK_BODY = modules.text("tests/fixtures/grok-billing.json")
-
-local function boot(opts)
-	opts = opts or {}
-	local config = { bar_provider = "claude", poll_minutes = 5, notify_threshold = 97, claude_user_agent = "claude-cli/9.9.9 (external, cli)", claude_accounts = {} }
-	for k, v in opts.config or {} do
-		config[k] = v
-	end
-	local fs = { ["~/.claude/.credentials.json"] = CLAUDE_CRED, ["~/.grok/auth.json"] = GROK_AUTH, ["~/.claude.json"] = CLAUDE_JSON }
-	for k, v in opts.fs or {} do
-		fs[k] = if v == false then nil else v
-	end
-	return entry.load("service.luau", { config = config, fs = fs, now = opts.now or NOW })
-end
-
-local function requests(loaded, url)
-	local out = {}
-	for i, call in mock.pendingHttp(loaded.env) do
-		if url == nil or call.request.url == url then
-			table.insert(out, i)
-		end
-	end
-	return out
-end
-
-local function view(loaded)
-	return loaded.env.noctalia.state.get("view")
-end
-
-local function sourceOf(loaded, key)
-	for _, s in view(loaded).sources do
-		if s.key == key then
-			return s
-		end
-	end
-	return nil
-end
+local CLAUDE_BODY = h.CLAUDE_BODY
+local GROK_BODY = h.GROK_BODY
+local boot = h.boot
+local requests = h.requests
+local view = h.view
+local sourceOf = h.sourceOf
 
 local function has(list, needle)
 	for _, v in list do
