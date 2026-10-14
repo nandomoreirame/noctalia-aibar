@@ -44,7 +44,7 @@ or refreshes a token.
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| Provider in the bar | `claude` | Source the bar shows: `claude`, `grok`, or `claude:<name>`. Middle click cycles the sources. Changing this setting overrides that choice. |
+| Provider in the bar | `claude` | Source the bar shows: `claude`, `grok`, or `claude:<account name>` (as in Frozen Claude accounts; case and spaces do not matter). Middle click cycles the sources. Changing this setting overrides that choice. |
 | Refresh every (minutes) | `5` | Poll interval. Minimum 2, maximum 60. |
 | Notify at (%) | `97` | One toast when a window crosses this percent upward. `0` turns notifications off. |
 | Claude User-Agent | `claude-cli/2.1.281 (external, cli)` | Advanced. Must look like a published Claude Code CLI, or the usage endpoint answers 429. |

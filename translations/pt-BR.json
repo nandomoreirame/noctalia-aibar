@@ -38,7 +38,7 @@
   "settings": {
     "bar_provider": {
       "label": "Provedor na barra",
-      "description": "Fonte exibida na barra: claude, grok ou claude:<nome>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
+      "description": "Fonte exibida na barra: claude, grok ou claude:<nome da conta>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
     },
     "poll_minutes": { "label": "Atualizar a cada (minutos)" },
     "notify_threshold": { "label": "Avisar em (%)", "description": "0 desliga os avisos." },

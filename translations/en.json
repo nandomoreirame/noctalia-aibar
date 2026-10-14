@@ -38,7 +38,7 @@
   "settings": {
     "bar_provider": {
       "label": "Provider in the bar",
-      "description": "Source the bar shows: claude, grok or claude:<name>. Middle click on the widget cycles through the sources; changing this setting overrides that choice."
+      "description": "Source the bar shows: claude, grok or claude:<account name>. Middle click on the widget cycles through the sources; changing this setting overrides that choice."
     },
     "poll_minutes": { "label": "Refresh every (minutes)" },
     "notify_threshold": { "label": "Notify at (%)", "description": "0 turns notifications off." },
