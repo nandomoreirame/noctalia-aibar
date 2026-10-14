@@ -208,14 +208,23 @@ local function loadCache()
 	end
 end
 
--- true when the file's mtime differs from the last one seen (missing = -1).
-local function changed(path: string): boolean
+-- Millisecond mtime plus size. The host derives mtime from two clock reads, so
+-- the raw double can wobble by a few ns with nothing changed on disk.
+local function fingerprint(path: string): string
 	local info = noctalia.fileInfo(path)
-	local mtime = if info then info.mtime else -1
-	if mtimes[path] == mtime then
+	if not info then
+		return "missing"
+	end
+	return math.floor((tonumber(info.mtime) or 0) * 1000) .. ":" .. (tonumber(info.size) or 0)
+end
+
+-- true when the file's fingerprint differs from the last one seen.
+local function changed(path: string): boolean
+	local seen = fingerprint(path)
+	if mtimes[path] == seen then
 		return false
 	end
-	mtimes[path] = mtime
+	mtimes[path] = seen
 	return true
 end
 
