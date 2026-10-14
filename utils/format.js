@@ -26,6 +26,11 @@ function minutesAgo(fetchedAt, nowMs) {
   return Math.max(0, Math.floor((nowMs - fetchedAt) / 60000));
 }
 
+// "5m", "2h5m", "3d0h" since fetchedAt.
+function ago(fetchedAt, nowMs) {
+  return countdown(nowMs, fetchedAt);
+}
+
 function windowKey(w) {
   if (w.id === "period") return "window.period-" + (w.periodType === "monthly" ? "monthly" : "weekly");
   return "window." + w.id;
@@ -34,11 +39,11 @@ function windowKey(w) {
 var LOGIN_ERRORS = ["auth", "grok-login", "claude-login", "claude-expired"];
 
 // i18n key and vars for a provider's request error; null when there is none.
-// limitReached hides login errors: the CLIs renew their token only when used,
-// so an expired one is expected while the plan is blocked.
-function errorMessage(usage, provider, nowMs, limitReached) {
+// quiet hides login errors: the CLIs renew their token only when used, so an
+// expired one is expected while the plan is blocked or the account is frozen.
+function errorMessage(usage, provider, nowMs, quiet) {
   if (!usage || !usage.error) return null;
-  if (limitReached && LOGIN_ERRORS.indexOf(usage.error) !== -1) return null;
+  if (quiet && LOGIN_ERRORS.indexOf(usage.error) !== -1) return null;
   if (usage.error === "auth") return { key: provider === "grok" ? "error.grok-login" : "error.claude-expired", vars: null };
   if (usage.error === "http") return { key: "error.http", vars: { code: usage.code } };
   if (usage.error === "rate-limited") return { key: "error.rate-limited", vars: { n: Math.max(0, Math.ceil((usage.retryAt - nowMs) / 60000)) } };

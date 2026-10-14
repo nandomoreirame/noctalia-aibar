@@ -1,13 +1,14 @@
 .pragma library
 
-// armed: { "<provider>|<window>": <end ms of the window that already fired> }.
+// armed: { "<source>|<window>": <end ms of the window that already fired> }.
 // A window fires once per reset period; dropping below the threshold re-arms it.
-function crossings(snapshot, armed, threshold) {
+// source tells accounts of one provider apart; it defaults to the provider.
+function crossings(snapshot, armed, threshold, source) {
   const next = Object.assign({}, armed || {});
   const fire = [];
   if (!snapshot || !(threshold > 0)) return { fire: fire, armed: next };
   for (const w of snapshot.windows || []) {
-    const key = snapshot.provider + "|" + w.id;
+    const key = (source || snapshot.provider) + "|" + w.id;
     if (w.percent < threshold) {
       delete next[key];
       continue;
