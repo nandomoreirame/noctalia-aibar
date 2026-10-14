@@ -18,6 +18,9 @@ local sources = {}
 local states = {}
 local identities = {}
 local mtimes = {}
+local tick = 0
+-- key -> tick when a file change asked for a poll; served on a later tick.
+local pending = {}
 local generation = {}
 local armed = {}
 local cache = { byAccount = {} }
@@ -123,18 +126,18 @@ local function request(source: any, url: string, headers: { string }, parse: (an
 	end)
 end
 
-local function pollSource(source: any)
+local function pollSource(source: any): boolean
 	local key = source.key
 	local t = now()
 	local current = stateOf(key)
 	if not poll.canRequest(current, t) then
-		return
+		return false
 	end
 	if source.provider == "grok" then
 		local cred = creds.grokKey(decodeFile(accounts.credPath(source)))
 		if not cred.ok then
 			states[key] = poll.fail(current, cred.error, 0, t)
-			return
+			return true
 		end
 		request(source, grok.API_URL, {
 			"Authorization: Bearer " .. cred.key,
@@ -143,12 +146,12 @@ local function pollSource(source: any)
 		}, function(data)
 			return grok.parseBilling(data, now())
 		end)
-		return
+		return true
 	end
 	local cred = creds.claudeToken(decodeFile(accounts.credPath(source)), t)
 	if not cred.ok then
 		states[key] = poll.fail(current, cred.error, 0, t)
-		return
+		return true
 	end
 	local plan = cred.plan
 	request(source, claude.API_URL, {
@@ -159,6 +162,7 @@ local function pollSource(source: any)
 	}, function(data)
 		return claude.parseUsage(data, plan, now())
 	end)
+	return true
 end
 
 local function pollAll()
@@ -195,7 +199,8 @@ local function syncIdentity(source: any)
 	end
 	generation[key] = (generation[key] or 0) + 1
 	states[key] = poll.restore(poll.createState(), cached)
-	pollSource(source)
+	-- Wait a tick: claude-swap writes .claude.json and .credentials.json separately.
+	pending[key] = tick
 end
 
 local function loadCache()
@@ -279,12 +284,21 @@ local function start()
 end
 
 function update()
+	tick += 1
 	for _, s in sources do
 		if s.provider == "claude" and changed(accounts.configPath(s)) then
 			syncIdentity(s)
 		end
-		if changed(accounts.credPath(s)) then
-			pollSource(s)
+	end
+	for _, s in sources do
+		local mark = pending[s.key]
+		if mark ~= nil and mark < tick and pollSource(s) then
+			pending[s.key] = nil
+		end
+	end
+	for _, s in sources do
+		if changed(accounts.credPath(s)) and pending[s.key] == nil then
+			pending[s.key] = tick
 		end
 	end
 	if now() >= nextPollAt then
