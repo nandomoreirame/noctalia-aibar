@@ -328,7 +328,12 @@ function onConfigChanged()
 		barKey = accounts.resolveKey(sources, setting)
 		persistSelection()
 	else
-		barKey = accounts.resolveKey(sources, barKey)
+		-- A source that vanished (removed account) falls back like at boot.
+		local resolved = view.initialKey(sources, barKey, setting)
+		if resolved ~= barKey then
+			barKey = resolved
+			persistSelection()
+		end
 	end
 	pollAll()
 end
