@@ -1,5 +1,9 @@
 # SPEC: aibar
 
+> **Superseded.** This document describes the Noctalia v4 (QML) plugin, which is
+> frozen at v0.1.3 on branch [`legacy-v4`](https://github.com/nandomoreirame/noctalia-aibar/tree/legacy-v4). The v5 port is specified in
+> `docs/specs/aibar-v5/SPEC.md`.
+
 **Status:** approved (2026-10-10) · **Depth:** Deep (14 REQs) · **Repo:** `noctalia-aibar`
 
 ## Summary

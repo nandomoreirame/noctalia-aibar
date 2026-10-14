@@ -9,7 +9,8 @@ v5 port of aibar (Luau, `plugin.toml`, plugin API 22, version 0.2.0). Design ref
 - Spec: `docs/specs/aibar-v5/SPEC.md` (REQ-001..021)
 - Plan: `docs/plans/2026-10-14-aibar-v5.md`
 
-The QML plugin for noctalia-shell 4.7.x is on branch `legacy-v4` (v0.1.3).
+The v4 QML plugin for noctalia-shell 4.7.x is frozen on branch
+[`legacy-v4`](https://github.com/nandomoreirame/noctalia-aibar/tree/legacy-v4) (v0.1.3). Do not port changes back to it.
 
 ## What it is
 
