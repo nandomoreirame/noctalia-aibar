@@ -217,4 +217,20 @@ function Present.panel(view: any, claudeTab: number, tr: any)
 	return model
 end
 
+-- The entries' tr(key, vars?) over the host's noctalia.tr, which must not get a
+-- nil vars argument.
+function Present.translator(hostTr: any): (string, any?) -> string
+	return function(key: string, vars: any?): string
+		if vars then
+			return hostTr(key, vars)
+		end
+		return hostTr(key)
+	end
+end
+
+-- Next value of a cmd.* counter on noctalia.state.
+function Present.bump(value: any): number
+	return (tonumber(value) or 0) + 1
+end
+
 return Present

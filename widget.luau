@@ -6,12 +6,7 @@ local present = require("./lib/present.luau")
 
 local PANEL = "nandomoreirame/aibar:panel"
 
-local function tr(key: string, vars: any?): string
-	if vars then
-		return noctalia.tr(key, vars)
-	end
-	return noctalia.tr(key)
-end
+local tr = present.translator(noctalia.tr)
 
 local function render(v: any)
 	local m = present.bar(v, tr)
@@ -38,7 +33,7 @@ function onClick()
 end
 
 function onMiddleClick()
-	noctalia.state.set("cmd.cycle", (tonumber(noctalia.state.get("cmd.cycle")) or 0) + 1)
+	noctalia.state.set("cmd.cycle", present.bump(noctalia.state.get("cmd.cycle")))
 end
 
 noctalia.state.watch("view", render)

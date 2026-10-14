@@ -7,12 +7,7 @@ local isOpen = false
 local claudeTab = 1
 local current = nil
 
-local function tr(key: string, vars: any?): string
-	if vars then
-		return noctalia.tr(key, vars)
-	end
-	return noctalia.tr(key)
-end
+local tr = present.translator(noctalia.tr)
 
 local function usageRow(row: any): any
 	local children = {
@@ -113,7 +108,7 @@ function render()
 end
 
 function onRefresh()
-	noctalia.state.set("cmd.refresh", (tonumber(noctalia.state.get("cmd.refresh")) or 0) + 1)
+	noctalia.state.set("cmd.refresh", present.bump(noctalia.state.get("cmd.refresh")))
 end
 
 -- The panel opens on the active account, like v4.
