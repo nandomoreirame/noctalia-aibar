@@ -83,6 +83,16 @@ After a swap, the card follows the account that is now active.
 
 **v4.** The QML version lives on branch `legacy-v4` (v0.1.3) for noctalia-shell 4.7.x.
 
+## Known gaps
+
+Differences from the v4 version that the v5 plugin API does not allow today:
+
+- The bar widget is not highlighted while its panel is open (the host owns that state in v5).
+- The panel height does not follow its content; long content scrolls inside a fixed height.
+- Threshold toasts use a plain notification: v5 offers `notify` and `notifyError`, no warning style.
+- `~/.claude.json` is decoded again on most service ticks while Claude Code runs (about 250 KB).
+  Accepted cost; revisit if the host logs a callback budget overrun.
+
 ## Development
 
 `./run-tests` needs the `luau` CLI. `lib/*.luau` is pure logic. The entries
