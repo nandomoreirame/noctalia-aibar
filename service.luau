@@ -255,9 +255,23 @@ local function refresh()
 	publish()
 end
 
-local function configure()
-	sources = accounts.sources(accounts.parseAccounts(noctalia.getConfig("claude_accounts")))
+-- Rebuilds the sources from settings. A key whose dir changed is a different
+-- account: its identity, state and pending answers are dropped. Returns the
+-- sources without a state before this call (new or reset).
+local function configure(): { any }
+	local previous = {}
 	for _, s in sources do
+		previous[s.key] = s.dir
+	end
+	sources = accounts.sources(accounts.parseAccounts(noctalia.getConfig("claude_accounts")))
+	local fresh = {}
+	for _, s in sources do
+		if previous[s.key] ~= nil and previous[s.key] ~= s.dir then
+			identities[s.key] = nil
+			states[s.key] = nil
+			pending[s.key] = nil
+			generation[s.key] = (generation[s.key] or 0) + 1
+		end
 		changed(accounts.credPath(s))
 		if s.provider == "claude" then
 			changed(accounts.configPath(s))
@@ -265,8 +279,10 @@ local function configure()
 		end
 		if states[s.key] == nil then
 			states[s.key] = poll.restore(poll.createState(), accounts.cachedSnapshot(cache, s.key, uuidOf(s.key)))
+			table.insert(fresh, s)
 		end
 	end
+	return fresh
 end
 
 local function start()
@@ -321,7 +337,7 @@ end
 -- Settings changed: rebuild the sources (claude_accounts), and let only a
 -- *changed* bar_provider override the middle-click choice.
 function onConfigChanged()
-	configure()
+	local fresh = configure()
 	local setting = tostring(noctalia.getConfig("bar_provider") or "")
 	if setting ~= lastBarSetting then
 		lastBarSetting = setting
@@ -335,7 +351,10 @@ function onConfigChanged()
 			persistSelection()
 		end
 	end
-	pollAll()
+	for _, s in fresh do
+		pollSource(s)
+	end
+	publish()
 end
 
 start()
