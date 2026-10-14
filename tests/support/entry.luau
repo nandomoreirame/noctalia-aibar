@@ -14,6 +14,7 @@
 -- (string, table, math, os.clock/time/date, pcall, error, type, typeof, ...).
 
 local mock = require("./noctalia_mock")
+local modules = require("./modules")
 
 local Entry = {}
 
@@ -22,42 +23,11 @@ export type LoadedEntry = {
 	call: (string, ...any) -> any,
 }
 
-local function sourceRequirePath(entryPath: string): string
-	-- "widget.luau" -> "../.generated/widget.src"
-	-- "tests/support/fixtures/widget.luau" -> "../.generated/tests_support_fixtures_widget.src"
-	local path = entryPath
-	if string.sub(path, 1, 2) == "./" then
-		path = string.sub(path, 3)
-	end
-	local withoutExt = string.gsub(path, "%.luau$", "")
-	local sanitized = string.gsub(withoutExt, "[/\\]+", "_")
-	return "../.generated/" .. sanitized .. ".src"
-end
-
 function Entry.load(entryPath: string, opts: any?): LoadedEntry
-	local modPath = sourceRequirePath(entryPath)
-	local requireOk, sourceOrErr = pcall(function()
-		return require(modPath)
-	end)
-	if not requireOk then
-		error(
-			string.format(
-				"entry.load: no generated source for %q (run via ./run-tests so tests/.generated/ is built): %s",
-				entryPath,
-				tostring(sourceOrErr)
-			),
-			2
-		)
-	end
-	local source = sourceOrErr
-	if typeof(source) ~= "string" then
-		error(
-			string.format("entry.load: generated module %s must return a string", modPath),
-			2
-		)
-	end
+	local source = modules.text(entryPath)
 
 	local env = mock.new(opts)
+	env.require = modules.requirer(entryPath)
 	-- Stdlib fallback: entry scripts use string/table/math/pcall/... normally.
 	setmetatable(env, {
 		__index = _G,
