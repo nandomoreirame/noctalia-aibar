@@ -19,7 +19,11 @@ local function slug(name: string): string
 end
 
 -- Account names are cut at MAX_NAME characters (UTF-8 aware) and trimmed.
+-- Invalid UTF-8 is cut at MAX_NAME bytes instead (utf8.offset would raise).
 local function capName(name: string): string
+	if utf8.len(name) == nil then
+		return trim(string.sub(name, 1, Accounts.MAX_NAME))
+	end
 	local cut = utf8.offset(name, Accounts.MAX_NAME + 1)
 	if cut then
 		name = string.sub(name, 1, cut - 1)
