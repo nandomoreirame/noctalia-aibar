@@ -158,7 +158,9 @@ function Present.card(entry: any, nowMs: number, tr: any)
 		end
 	end
 	for _, w in snap.windows or {} do
+		local elapsed = pace.pace(w, nowMs).elapsed
 		table.insert(card.rows, {
+			elapsed = if elapsed ~= nil then elapsed / 100 else nil,
 			label = tr(format.windowKey(w)),
 			percentText = format.percentText(w.percent),
 			fraction = fraction(w.percent),

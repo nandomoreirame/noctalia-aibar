@@ -108,6 +108,57 @@ describe("panel", function()
 		assert.equal(find(p, function(n) return n.type == "button" and n.props.glyph == "refresh" end).props.enabled, false)
 	end)
 
+	it("lays out flush with the host padding and one card per window", function()
+		local p = entry.load("panel.luau", {})
+		local view = table.clone(VIEW)
+		view.now = 2 * H
+		p.env.noctalia.state.set("view", view)
+		p.call("onOpen")
+		local calls = mock.calls(p.env, "panel.render")
+		local root = calls[#calls][1]
+		assert.equal(root.props.padding, nil)
+		assert.equal(root.props.align, "stretch")
+		assert.equal(root.props.flexGrow, 1)
+		local session = find(p, function(n) return n.props.key == "window-claude-1" end)
+		assert.equal(session.props.fill, "surface_variant/0.45")
+		local bars = {}
+		for _, node in walk(session) do
+			if node.type == "progress" then
+				table.insert(bars, node.props.progress)
+			end
+		end
+		assert.deepEqual(bars, { 0.47, 0.4 })
+	end)
+
+	it("puts the limit note in the last window card instead of a card of its own", function()
+		local p = entry.load("panel.luau", {})
+		local full = { provider = "claude", plan = "", windows = { { id = "session", percent = 100, startMs = 0, endMs = 5 * H } }, products = {}, fetchedAt = 0 }
+		p.env.noctalia.state.set("view", { now = 2 * H, barKey = "claude", sources = { src({ snapshot = full }) } })
+		p.call("onOpen")
+		assert.equal(find(p, function(n) return n.props.key == "notes-claude" end), nil)
+		local inCard = false
+		for _, node in walk(find(p, function(n) return n.props.key == "window-claude-1" end)) do
+			if node.props.text == "panel.limit-reached t=3h0m" then
+				inCard = true
+			end
+		end
+		assert.equal(inCard, true)
+	end)
+
+	it("closes the panel and opens the plugin settings from the header", function()
+		local p = entry.load("panel.luau", {})
+		p.env.noctalia.state.set("view", VIEW)
+		p.call("onOpen")
+		local close = find(p, function(n) return n.type == "button" and n.props.glyph == "x" end)
+		assert.equal(close.props.tooltip, "panel.close")
+		close.props.onClick()
+		assert.equal(#mock.calls(p.env, "panel.close"), 1)
+		local settings = find(p, function(n) return n.type == "button" and n.props.glyph == "settings" end)
+		assert.equal(settings.props.tooltip, "panel.settings")
+		settings.props.onClick()
+		assert.equal(#mock.calls(p.env, "noctalia.openSettings"), 1)
+	end)
+
 	it("does not render while closed", function()
 		local p = entry.load("panel.luau", {})
 		p.env.noctalia.state.set("view", VIEW)

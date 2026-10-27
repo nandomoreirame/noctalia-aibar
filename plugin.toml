@@ -87,7 +87,7 @@ middle = "none"
 [[panel]]
 id = "panel"
 entry = "panel.luau"
-width = 400
-height = 560
+width = 360
+height = 400
 placement = "attached"
 open_near_click = true
