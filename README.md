@@ -30,7 +30,8 @@ noctalia msg plugins enable nandomoreirame/aibar
 
 Add `nandomoreirame/aibar:bar` to a bar. Left click opens the panel on the tab of
 the bar's provider (`Claude // Grok // Codex // Agy // Cursor`; Claude accounts
-are sub-tabs). Middle click cycles the source (Claude accounts, then Grok, Codex,
+are sub-tabs). Choosing a tab, or a Claude account inside it, also moves the bar
+to that source. Middle click cycles the source (Claude accounts, then Grok, Codex,
 Agy and Cursor, skipping the ones turned off) and the choice is saved.
 
 ```bash

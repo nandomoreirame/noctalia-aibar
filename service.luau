@@ -343,6 +343,16 @@ local function cycle()
 	publish()
 end
 
+-- The panel picked a source: show it in the bar. Unknown keys are ignored.
+local function selectSource(value: any)
+	if typeof(value) ~= "table" or typeof(value.key) ~= "string" or accounts.indexOfKey(sources, value.key) == 0 then
+		return
+	end
+	barKey = value.key
+	persistSelection()
+	publish()
+end
+
 local function refresh()
 	for _, s in sources do
 		if s.provider == "claude" then
@@ -439,6 +449,7 @@ local function start()
 	noctalia.state.watch("cmd.cycle", function()
 		cycle()
 	end)
+	noctalia.state.watch("cmd.select", selectSource)
 end
 
 function update()

@@ -198,6 +198,30 @@ function Present.providerOf(view: any, key: string?): string
 	return if entry then entry.provider else "claude"
 end
 
+-- 1-based position of the bar source among the Claude accounts (1 otherwise).
+function Present.accountIndex(view: any, key: string?): number
+	if not view or not view.sources or key == nil then
+		return 1
+	end
+	local i = 0
+	for _, s in view.sources do
+		if s.provider == "claude" then
+			i += 1
+			if s.key == key then
+				return i
+			end
+		end
+	end
+	return 1
+end
+
+-- Next value of cmd.select: the counter makes choosing the same key again a
+-- change too (after a middle click moved the bar elsewhere).
+function Present.selectCommand(prev: any, key: string): any
+	local n = if typeof(prev) == "table" then tonumber(prev.n) or 0 else 0
+	return { key = key, n = n + 1 }
+end
+
 -- claudeTab: 1-based index of the Claude account shown under the Claude tab.
 -- provider: the selected top tab; one without a source falls back to the first.
 function Present.panel(view: any, claudeTab: number, tr: any, provider: string?)
@@ -223,14 +247,14 @@ function Present.panel(view: any, claudeTab: number, tr: any, provider: string?)
 	end
 	local selected = if provider ~= nil and byProvider[provider] ~= nil then provider else order[1]
 	for _, p in order do
-		table.insert(model.providers, { key = p, label = Present.TAB_LABEL[p] or p, selected = p == selected })
+		table.insert(model.providers, { key = p, source = byProvider[p][1].key, label = Present.TAB_LABEL[p] or p, selected = p == selected })
 	end
 	local list = byProvider[selected]
 	local index = math.clamp(claudeTab, 1, #list)
 	model.section = Present.card(list[index], now, tr)
 	if #list > 1 then
 		for i, s in list do
-			table.insert(model.tabs, { label = if s.frozen then s.name else tr("panel.active"), selected = i == index })
+			table.insert(model.tabs, { key = s.key, label = if s.frozen then s.name else tr("panel.active"), selected = i == index })
 		end
 	end
 	return model

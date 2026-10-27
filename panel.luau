@@ -48,6 +48,11 @@ local function windowCard(key: string, row: any, footer: any): any
 	return card(key, children)
 end
 
+-- Asks the service to show this source in the bar.
+local function select(key: string)
+	noctalia.state.set("cmd.select", present.selectCommand(noctalia.state.get("cmd.select"), key))
+end
+
 local function sectionHeader(c: any, tabs: any): any
 	local title = {
 		ui.glyph({ name = c.glyph, size = 16, color = "primary" }),
@@ -76,6 +81,7 @@ local function sectionHeader(c: any, tabs: any): any
 				selected = tab.selected,
 				onClick = function()
 					claudeTab = i
+					select(tab.key)
 					render()
 				end,
 			}))
@@ -161,6 +167,7 @@ local function providerTabs(list: any): any
 			onClick = function()
 				providerTab = p.key
 				claudeTab = 1
+				select(p.source)
 				render()
 			end,
 		}))
@@ -193,7 +200,7 @@ end
 function onOpen(_context: any)
 	isOpen = true
 	providerTab = present.providerOf(current, if current then current.barKey else nil)
-	claudeTab = 1
+	claudeTab = present.accountIndex(current, if current then current.barKey else nil)
 	render()
 end
 

@@ -163,9 +163,9 @@ describe("present.panel", function()
 		assert.equal(m.refresh, "panel.refresh")
 		assert.equal(m.busy, true)
 		assert.deepEqual(m.providers, {
-			{ key = "claude", label = "Claude", selected = false },
-			{ key = "grok", label = "Grok", selected = false },
-			{ key = "codex", label = "Codex", selected = true },
+			{ key = "claude", source = "claude", label = "Claude", selected = false },
+			{ key = "grok", source = "grok", label = "Grok", selected = false },
+			{ key = "codex", source = "codex", label = "Codex", selected = true },
 		})
 		assert.equal(m.section.title, "provider.codex")
 		assert.equal(m.section.error, "error.codex-login")
@@ -174,7 +174,7 @@ describe("present.panel", function()
 
 	it("keeps the Claude accounts as sub-tabs of the Claude tab", function()
 		local m = present.panel(v, 2, tr, "claude")
-		assert.deepEqual(m.tabs, { { label = "panel.active", selected = false }, { label = "F", selected = true } })
+		assert.deepEqual(m.tabs, { { key = "claude", label = "panel.active", selected = false }, { key = "claude:f", label = "F", selected = true } })
 		assert.equal(m.section.badge.text, "panel.frozen")
 		assert.equal(present.panel(v, 9, tr, "claude").tabs[2].selected, true)
 	end)
@@ -193,6 +193,19 @@ describe("present.panel", function()
 		assert.equal(m.section, nil)
 		assert.deepEqual(m.providers, {})
 		assert.deepEqual(m.tabs, {})
+	end)
+
+	it("finds the account of the bar source among the Claude accounts", function()
+		assert.equal(present.accountIndex(v, "claude:f"), 2)
+		assert.equal(present.accountIndex(v, "claude"), 1)
+		assert.equal(present.accountIndex(v, "codex"), 1)
+		assert.equal(present.accountIndex(nil, "claude:f"), 1)
+	end)
+
+	it("builds a select command that changes even for the same key", function()
+		assert.deepEqual(present.selectCommand(nil, "grok"), { key = "grok", n = 1 })
+		assert.deepEqual(present.selectCommand({ key = "grok", n = 4 }, "grok"), { key = "grok", n = 5 })
+		assert.deepEqual(present.selectCommand("junk", "codex"), { key = "codex", n = 1 })
 	end)
 
 	it("opens on the provider of the bar source", function()

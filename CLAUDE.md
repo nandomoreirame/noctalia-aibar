@@ -39,10 +39,11 @@ reports the pipe's exit code, not the suite's.
   fires notifications. It polls through a `pollers` table keyed by provider;
   `command()` is the `runAsync` counterpart of `request()`. Sources follow the
   `show_<provider>` settings (Claude is always on). It publishes one
-  `view` on `noctalia.state` and watches the counters `cmd.refresh` and `cmd.cycle`.
+  `view` on `noctalia.state` and watches the counters `cmd.refresh` and `cmd.cycle`,
+  plus `cmd.select` (`{ key, n }`), which moves the bar to the source picked in the panel.
 - `widget.luau` and `panel.luau` render only from `view`. Left click toggles the
   panel. Middle click increments `cmd.cycle`. The panel refresh button increments
-  `cmd.refresh`.
+  `cmd.refresh`. Choosing a provider tab or a Claude account tab sets `cmd.select`.
 - `lib/*.luau` is pure: no `noctalia`, `barWidget`, `panel` or `ui` globals. Each
   module returns one table. Siblings are required as `require("./x.luau")`. Modules:
   `time`, `creds`, `pace`, `format`, `poll`, `notify`, `accounts`, `claude`, `grok`,
