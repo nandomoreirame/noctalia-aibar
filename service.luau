@@ -4,6 +4,7 @@
 
 local accounts = require("./lib/accounts.luau")
 local claude = require("./lib/claude.luau")
+local codex = require("./lib/codex.luau")
 local creds = require("./lib/creds.luau")
 local format = require("./lib/format.luau")
 local grok = require("./lib/grok.luau")
@@ -161,6 +162,25 @@ pollers.claude = function(source: any, current: any, t: number)
 		"Accept: application/json",
 	}, function(data)
 		return claude.parseUsage(data, plan, now())
+	end)
+end
+
+pollers.codex = function(source: any, current: any, t: number)
+	local cred = creds.codexToken(decodeFile(accounts.credPath(source)))
+	if not cred.ok then
+		states[source.key] = poll.fail(current, cred.error, 0, t)
+		return
+	end
+	local headers = {
+		"Authorization: Bearer " .. cred.token,
+		"User-Agent: " .. codex.USER_AGENT,
+		"Accept: application/json",
+	}
+	if cred.accountId ~= "" then
+		table.insert(headers, "ChatGPT-Account-Id: " .. cred.accountId)
+	end
+	request(source, codex.API_URL, headers, function(data)
+		return codex.parseUsage(data, now())
 	end)
 end
 
