@@ -84,7 +84,7 @@ local function fireNotifications(source: any, snapshot: any)
 	armed = result.armed
 	for _, item in result.fire do
 		noctalia.notify(
-			tr("notify.title", { provider = present.sourceName(source, tr), window = tr(format.windowKey(item)), n = math.floor(item.percent + 0.5) }),
+			tr("notify.title", { provider = present.sourceName(source, tr), window = format.windowLabel(item, tr), n = math.floor(item.percent + 0.5) }),
 			tr("notify.body", { t = format.countdown(item.endMs, now()) })
 		)
 	end

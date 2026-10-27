@@ -120,6 +120,13 @@ describe("service agy", function()
 		assert.equal(h.sourceOf(t, "agy").error, "agy-missing")
 	end)
 
+	it("names the agy group in a threshold notification", function()
+		local s = h.boot({ config = { show_agy = true, notify_threshold = 97 }, commands = { "agy" }, async = { [AGY_ARGV] = run(0, AGY_BODY) } })
+		local n = mock.calls(s.env, "noctalia.notify")
+		assert.equal(#n, 1)
+		assert.equal(n[1][1], "notify.title n=100 provider=provider.agy window=Gemini 4 Argon · window.weekly")
+	end)
+
 	it("treats unreadable output as a failed run", function()
 		local s = h.boot({ config = { show_agy = true }, commands = { "agy" }, async = { [AGY_ARGV] = run(0, "not json") } })
 		assert.equal(h.sourceOf(s, "agy").error, "agy-login")
