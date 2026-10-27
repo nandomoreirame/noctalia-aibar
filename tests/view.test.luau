@@ -7,7 +7,7 @@ local view = modules.load("lib/view.luau")
 local accounts = modules.load("lib/accounts.luau")
 local H = 3600000
 
-local SOURCES = accounts.sources(accounts.parseAccounts({ "Frozen=~/.claude-freeze" }))
+local SOURCES = accounts.sources(accounts.parseAccounts({ "Frozen=~/.claude-freeze" }), { codex = false, agy = false, cursor = false })
 
 describe("view.build", function()
 	it("lists every source with its state, identity and a projected snapshot", function()

@@ -4,6 +4,7 @@ local modules = require("./support/modules")
 
 local describe, it = runner.describe, runner.it
 local accounts = modules.load("lib/accounts.luau")
+local CLAUDE_GROK = { codex = false, agy = false, cursor = false }
 
 local function keys(list)
 	local out = {}
@@ -54,12 +55,18 @@ end)
 
 describe("accounts.sources", function()
 	it("lists the default Claude account, the extras, then Grok", function()
-		assert.deepEqual(accounts.sources(accounts.parseAccounts({ "Trabalho=~/.claude-trabalho" })), {
+		assert.deepEqual(accounts.sources(accounts.parseAccounts({ "Trabalho=~/.claude-trabalho" }), CLAUDE_GROK), {
 			{ key = "claude", provider = "claude", name = "", dir = "", frozen = false },
 			{ key = "claude:trabalho", provider = "claude", name = "Trabalho", dir = "~/.claude-trabalho", frozen = true },
 			{ key = "grok", provider = "grok", name = "", dir = "", frozen = false },
 		})
-		assert.deepEqual(keys(accounts.sources(nil)), { "claude", "grok" })
+		assert.deepEqual(keys(accounts.sources(nil, CLAUDE_GROK)), { "claude", "grok" })
+	end)
+
+	it("lists the other providers in tab order and drops disabled ones", function()
+		assert.deepEqual(keys(accounts.sources(nil)), { "claude", "grok", "codex", "agy", "cursor" })
+		assert.deepEqual(keys(accounts.sources(nil, { grok = false, agy = false })), { "claude", "codex", "cursor" })
+		assert.deepEqual(accounts.sources(nil)[3], { key = "codex", provider = "codex", name = "", dir = "", frozen = false })
 	end)
 end)
 
@@ -70,6 +77,12 @@ describe("accounts paths", function()
 		assert.equal(accounts.credPath({ provider = "grok", dir = "" }), "~/.grok/auth.json")
 		assert.equal(accounts.configPath({ provider = "claude", dir = "" }), "~/.claude.json")
 		assert.equal(accounts.configPath({ provider = "claude", dir = "/data/u/.claude-f" }), "/data/u/.claude-f/.claude.json")
+	end)
+
+	it("watches only credentials the plugin reads and that change with a login", function()
+		assert.equal(accounts.credPath({ provider = "codex", dir = "" }), "~/.codex/auth.json")
+		assert.equal(accounts.credPath({ provider = "cursor", dir = "" }), "")
+		assert.equal(accounts.credPath({ provider = "agy", dir = "" }), "")
 	end)
 end)
 
@@ -93,19 +106,20 @@ describe("accounts identity", function()
 	end)
 
 	it("picks the cached snapshot by account id, else by provider", function()
-		local cache = { claude = { legacy = 1 }, grok = { g = 1 }, byAccount = { u1 = { a = 1 } } }
+		local cache = { claude = { legacy = 1 }, grok = { g = 1 }, codex = { c = 1 }, byAccount = { u1 = { a = 1 } } }
 		assert.deepEqual(accounts.cachedSnapshot(cache, "claude", "u1"), { a = 1 })
 		assert.deepEqual(accounts.cachedSnapshot(cache, "claude:freeze", "u1"), { a = 1 })
 		assert.equal(accounts.cachedSnapshot(cache, "claude", "u2"), nil)
 		assert.deepEqual(accounts.cachedSnapshot(cache, "claude", ""), { legacy = 1 })
 		assert.deepEqual(accounts.cachedSnapshot(cache, "grok", ""), { g = 1 })
+		assert.deepEqual(accounts.cachedSnapshot(cache, "codex", ""), { c = 1 })
 		assert.equal(accounts.cachedSnapshot(cache, "claude:freeze", ""), nil)
 		assert.equal(accounts.cachedSnapshot(nil, "claude", "u1"), nil)
 	end)
 end)
 
 describe("accounts keys", function()
-	local list = accounts.sources(accounts.parseAccounts({ "T=~/.claude-t" }))
+	local list = accounts.sources(accounts.parseAccounts({ "T=~/.claude-t" }), CLAUDE_GROK)
 
 	it("cycles through every source", function()
 		assert.equal(accounts.nextKey(list, "claude"), "claude:t")

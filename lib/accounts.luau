@@ -1,6 +1,7 @@
 -- Usage sources: the active Claude account (~/.claude), frozen Claude accounts
 -- (each a CLAUDE_CONFIG_DIR holding the login of an account not in use, see
--- scripts/claude-swap) and Grok. Keys: "claude", "claude:<slug>", "grok".
+-- scripts/claude-swap), Grok, Codex, Agy and Cursor. Keys: "claude",
+-- "claude:<slug>", "grok", "codex", "agy", "cursor".
 -- Paths stay in "~/..." form; noctalia.readFile expands "~".
 
 local Accounts = {}
@@ -8,6 +9,11 @@ local Accounts = {}
 Accounts.MAX_EXTRA = 4
 Accounts.MAX_NAME = 24
 local DEFAULT_DIR = "~/.claude"
+-- One source each, after the Claude accounts, in tab order.
+Accounts.PROVIDERS = { "grok", "codex", "agy", "cursor" }
+-- Cursor's state.vscdb changes on every IDE write and agy keeps its session in
+-- the keyring: neither is watched.
+local CRED_PATH = { grok = "~/.grok/auth.json", codex = "~/.codex/auth.json" }
 
 local function trim(s: string): string
 	return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
@@ -96,18 +102,24 @@ function Accounts.parseAccounts(value: any)
 	return out
 end
 
-function Accounts.sources(extra: any)
+-- enabled: { [provider] = boolean }; a provider missing from it is on.
+function Accounts.sources(extra: any, enabled: any?)
 	local list = { { key = "claude", provider = "claude", name = "", dir = "", frozen = false } }
 	for _, a in extra or {} do
 		table.insert(list, { key = a.key, provider = "claude", name = a.name, dir = a.dir, frozen = true })
 	end
-	table.insert(list, { key = "grok", provider = "grok", name = "", dir = "", frozen = false })
+	for _, provider in Accounts.PROVIDERS do
+		if enabled == nil or enabled[provider] ~= false then
+			table.insert(list, { key = provider, provider = provider, name = "", dir = "", frozen = false })
+		end
+	end
 	return list
 end
 
+-- "" for a source with no credential file to watch.
 function Accounts.credPath(source: any): string
-	if source.provider == "grok" then
-		return "~/.grok/auth.json"
+	if source.provider ~= "claude" then
+		return CRED_PATH[source.provider] or ""
 	end
 	return (if source.dir ~= "" then source.dir else DEFAULT_DIR) .. "/.credentials.json"
 end
@@ -148,7 +160,7 @@ function Accounts.cachedSnapshot(cache: any, key: string, uuid: string): any
 		local byAccount = if typeof(cache.byAccount) == "table" then cache.byAccount else {}
 		return byAccount[uuid]
 	end
-	if key == "claude" or key == "grok" then
+	if key == "claude" or table.find(Accounts.PROVIDERS, key) then
 		return cache[key]
 	end
 	return nil

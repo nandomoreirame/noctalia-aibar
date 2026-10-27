@@ -285,6 +285,15 @@ local function watch(path: string)
 	end
 end
 
+-- show_<provider> settings; Claude is always on.
+local function enabledProviders(): any
+	local map = {}
+	for _, p in accounts.PROVIDERS do
+		map[p] = noctalia.getConfig("show_" .. p) ~= false
+	end
+	return map
+end
+
 -- Rebuilds the sources from settings. A key whose dir changed, or that was
 -- removed, is reset. Returns the sources that had no state before this call
 -- (new or reset); they need a poll even when a cached snapshot was restored.
@@ -293,7 +302,7 @@ local function configure(): { any }
 	for _, s in sources do
 		previous[s.key] = s.dir
 	end
-	sources = accounts.sources(accounts.parseAccounts(noctalia.getConfig("claude_accounts")))
+	sources = accounts.sources(accounts.parseAccounts(noctalia.getConfig("claude_accounts")), enabledProviders())
 	local kept = {}
 	local fresh = {}
 	for _, s in sources do
