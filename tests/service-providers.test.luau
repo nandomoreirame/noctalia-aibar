@@ -53,3 +53,44 @@ describe("service codex", function()
 		assert.equal(c.stale, true)
 	end)
 end)
+
+local CURSOR_DB = "/mock/home/.config/Cursor/User/globalStorage/state.vscdb"
+local CURSOR_ARGV = "sqlite3 -readonly " .. CURSOR_DB .. " SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'"
+local CURSOR_URL = "https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage"
+
+local function run(exitCode, stdout)
+	return { exitCode = exitCode, stdout = stdout, stderr = "", timedOut = false, stdoutTruncated = false, stderrTruncated = false }
+end
+
+describe("service cursor", function()
+	it("reads the token with sqlite3 and posts the usage RPC", function()
+		local s = h.boot({ config = { show_cursor = true }, commands = { "sqlite3" }, async = { [CURSOR_ARGV] = run(0, "SECRET-CURSOR\n") } })
+		local calls = mock.calls(s.env, "noctalia.runAsync")
+		assert.equal(#calls, 1)
+		for _, part in calls[1][1] do
+			assert.equal(string.find(part, "SECRET", 1, true), nil)
+		end
+		local i = h.requests(s, CURSOR_URL)[1]
+		local req = mock.pendingHttp(s.env)[i].request
+		assert.equal(req.method, "POST")
+		assert.equal(req.body, "{}")
+		assert.equal(h.header(s, i, "Authorization"), "Authorization: Bearer SECRET-CURSOR")
+		assert.equal(h.header(s, i, "Connect-Protocol-Version"), "Connect-Protocol-Version: 1")
+		assert.equal(h.header(s, i, "Content-Type"), "Content-Type: application/json")
+		mock.respond(s.env, i, { ok = true, status = 200, body = modules.text("tests/fixtures/cursor-usage.json") })
+		local c = h.sourceOf(s, "cursor")
+		assert.equal(c.snapshot.windows[1].periodType, "monthly")
+		assert.equal(c.snapshot.products[1].name, "Auto")
+		assertNoSecret(s)
+	end)
+
+	it("reports a missing sqlite3 or Cursor session without a request", function()
+		local s = h.boot({ config = { show_cursor = true } })
+		assert.equal(h.sourceOf(s, "cursor").error, "cursor-sqlite")
+		assert.equal(#mock.calls(s.env, "noctalia.runAsync"), 0)
+		local t = h.boot({ config = { show_cursor = true }, commands = { "sqlite3" }, async = { [CURSOR_ARGV] = run(1, "") } })
+		assert.equal(h.sourceOf(t, "cursor").error, "cursor-login")
+		assert.equal(#h.requests(t, CURSOR_URL), 0)
+		assertNoSecret(t)
+	end)
+end)

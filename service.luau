@@ -6,6 +6,7 @@ local accounts = require("./lib/accounts.luau")
 local claude = require("./lib/claude.luau")
 local codex = require("./lib/codex.luau")
 local creds = require("./lib/creds.luau")
+local cursor = require("./lib/cursor.luau")
 local format = require("./lib/format.luau")
 local grok = require("./lib/grok.luau")
 local notify = require("./lib/notify.luau")
@@ -130,6 +131,21 @@ local function request(source: any, url: string, headers: { string }, parse: (an
 	end)
 end
 
+-- runAsync counterpart of request: the result is dropped when a newer poll or a
+-- reset replaced it. stdout may hold a token, so it is never logged.
+local function command(source: any, argv: { string }, done: (any) -> ())
+	local key = source.key
+	local id = (generation[key] or 0) + 1
+	generation[key] = id
+	states[key] = poll.begin(stateOf(key), now())
+	noctalia.runAsync(argv, function(res)
+		if generation[key] ~= id then
+			return
+		end
+		done(res)
+	end)
+end
+
 -- provider -> function(source, state, nowMs) that starts one poll.
 local pollers = {}
 
@@ -181,6 +197,29 @@ pollers.codex = function(source: any, current: any, t: number)
 	end
 	request(source, codex.API_URL, headers, function(data)
 		return codex.parseUsage(data, now())
+	end)
+end
+
+-- Token from Cursor's own state.vscdb (read-only); argv holds only the query.
+pollers.cursor = function(source: any, current: any, t: number)
+	if not noctalia.commandExists("sqlite3") then
+		states[source.key] = poll.fail(current, "cursor-sqlite", 0, t)
+		return
+	end
+	command(source, cursor.tokenArgv(noctalia.expandPath(cursor.DB_PATH)), function(res)
+		local cred = cursor.tokenFrom(res)
+		if not cred.ok then
+			applyResult(source, cred.error, 0, nil)
+			return
+		end
+		request(source, cursor.API_URL, {
+			"Authorization: Bearer " .. cred.token,
+			"Content-Type: application/json",
+			"Connect-Protocol-Version: 1",
+			"Accept: application/json",
+		}, function(data)
+			return cursor.parseUsage(data, now())
+		end, "{}")
 	end)
 end
 
