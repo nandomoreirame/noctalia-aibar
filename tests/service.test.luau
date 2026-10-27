@@ -111,6 +111,17 @@ describe("service polling", function()
 		assert.equal(#requests(s, GROK_URL), 1)
 		assert.equal(sourceOf(s, "grok").inFlight, true)
 	end)
+
+	it("never watches a source without a credential file and leaves it unpolled", function()
+		local s = boot({ config = { show_agy = true, show_cursor = true } })
+		s.call("update")
+		for _, call in mock.calls(s.env, "noctalia.fileInfo") do
+			assert.equal(call[1] ~= "", true)
+		end
+		assert.equal(sourceOf(s, "agy").error ~= "claude-login", true)
+		assert.equal(sourceOf(s, "cursor").error ~= "claude-login", true)
+		assert.equal(#requests(s), 2)
+	end)
 end)
 
 describe("service cache", function()

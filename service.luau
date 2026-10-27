@@ -1,5 +1,5 @@
 -- AI Bar service: the only entry that touches credentials, HTTP and files.
--- Tokens live only in locals of pollSource and in the headers table handed to
+-- Tokens live only in locals of the pollers and in the headers table handed to
 -- noctalia.http. They never reach noctalia.state, logs, files or notifications.
 
 local accounts = require("./lib/accounts.luau")
@@ -68,7 +68,7 @@ local function saveSnapshot(key: string, snapshot: any)
 	local uuid = uuidOf(key)
 	if uuid ~= "" then
 		cache.byAccount[uuid] = snapshot
-	elseif key == "claude" or key == "grok" then
+	elseif key == "claude" or table.find(accounts.PROVIDERS, key) then
 		cache[key] = snapshot
 	else
 		return
@@ -100,14 +100,15 @@ local function applyResult(source: any, kind: string, code: number, snapshot: an
 end
 
 -- headers is a local list; nothing in it is logged. An answer is dropped when a
--- newer request replaced it or the source's account changed meanwhile.
-local function request(source: any, url: string, headers: { string }, parse: (any) -> any)
+-- newer request replaced it or the source's account changed meanwhile. A body
+-- makes it a POST.
+local function request(source: any, url: string, headers: { string }, parse: (any) -> any, body: string?)
 	local key = source.key
 	local id = (generation[key] or 0) + 1
 	generation[key] = id
 	local account = uuidOf(key)
 	states[key] = poll.begin(stateOf(key), now())
-	noctalia.http({ url = url, method = "GET", headers = headers }, function(res)
+	noctalia.http({ url = url, method = if body ~= nil then "POST" else "GET", headers = headers, body = body }, function(res)
 		-- A request started without a known account belongs to whichever account is
 		-- adopted next; one started with a known account is dropped after a swap.
 		if generation[key] ~= id or (account ~= "" and uuidOf(key) ~= account) then
@@ -128,36 +129,29 @@ local function request(source: any, url: string, headers: { string }, parse: (an
 	end)
 end
 
-local function pollSource(source: any): boolean
-	local key = source.key
-	-- Marked this tick (file change or swap): wait for a later tick, whoever asks.
-	if pending[key] == tick then
-		return false
+-- provider -> function(source, state, nowMs) that starts one poll.
+local pollers = {}
+
+pollers.grok = function(source: any, current: any, t: number)
+	local cred = creds.grokKey(decodeFile(accounts.credPath(source)))
+	if not cred.ok then
+		states[source.key] = poll.fail(current, cred.error, 0, t)
+		return
 	end
-	local t = now()
-	local current = stateOf(key)
-	if not poll.canRequest(current, t) then
-		return false
-	end
-	if source.provider == "grok" then
-		local cred = creds.grokKey(decodeFile(accounts.credPath(source)))
-		if not cred.ok then
-			states[key] = poll.fail(current, cred.error, 0, t)
-			return true
-		end
-		request(source, grok.API_URL, {
-			"Authorization: Bearer " .. cred.key,
-			"X-XAI-Token-Auth: " .. grok.TOKEN_AUTH,
-			"Accept: application/json",
-		}, function(data)
-			return grok.parseBilling(data, now())
-		end)
-		return true
-	end
+	request(source, grok.API_URL, {
+		"Authorization: Bearer " .. cred.key,
+		"X-XAI-Token-Auth: " .. grok.TOKEN_AUTH,
+		"Accept: application/json",
+	}, function(data)
+		return grok.parseBilling(data, now())
+	end)
+end
+
+pollers.claude = function(source: any, current: any, t: number)
 	local cred = creds.claudeToken(decodeFile(accounts.credPath(source)), t)
 	if not cred.ok then
-		states[key] = poll.fail(current, cred.error, 0, t)
-		return true
+		states[source.key] = poll.fail(current, cred.error, 0, t)
+		return
 	end
 	local plan = cred.plan
 	request(source, claude.API_URL, {
@@ -168,6 +162,21 @@ local function pollSource(source: any): boolean
 	}, function(data)
 		return claude.parseUsage(data, plan, now())
 	end)
+end
+
+local function pollSource(source: any): boolean
+	local key = source.key
+	-- Marked this tick (file change or swap): wait for a later tick, whoever asks.
+	if pending[key] == tick then
+		return false
+	end
+	local t = now()
+	local current = stateOf(key)
+	local poller = pollers[source.provider]
+	if poller == nil or not poll.canRequest(current, t) then
+		return false
+	end
+	poller(source, current, t)
 	return true
 end
 
@@ -311,7 +320,10 @@ local function configure(): { any }
 			resetSource(s.key)
 		end
 		local isFresh = states[s.key] == nil
-		watch(accounts.credPath(s))
+		local cred = accounts.credPath(s)
+		if cred ~= "" then
+			watch(cred)
+		end
 		if s.provider == "claude" then
 			watch(accounts.configPath(s))
 			syncIdentity(s)
@@ -356,7 +368,8 @@ function update()
 		end
 	end
 	for _, s in sources do
-		if changed(accounts.credPath(s)) and pending[s.key] == nil then
+		local cred = accounts.credPath(s)
+		if cred ~= "" and changed(cred) and pending[s.key] == nil then
 			pending[s.key] = tick
 		end
 	end
