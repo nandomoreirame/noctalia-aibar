@@ -3,6 +3,7 @@
 -- noctalia.http. They never reach noctalia.state, logs, files or notifications.
 
 local accounts = require("./lib/accounts.luau")
+local agy = require("./lib/agy.luau")
 local claude = require("./lib/claude.luau")
 local codex = require("./lib/codex.luau")
 local creds = require("./lib/creds.luau")
@@ -220,6 +221,27 @@ pollers.cursor = function(source: any, current: any, t: number)
 		}, function(data)
 			return cursor.parseUsage(data, now())
 		end, "{}")
+	end)
+end
+
+-- agy prints its own Models & Quota summary: no token, no model turn.
+pollers.agy = function(source: any, current: any, t: number)
+	if not noctalia.commandExists("agy") then
+		states[source.key] = poll.fail(current, "agy-missing", 0, t)
+		return
+	end
+	command(source, agy.ARGV, function(res)
+		if typeof(res) ~= "table" or res.exitCode ~= 0 then
+			applyResult(source, "agy-login", 0, nil)
+			return
+		end
+		local decoded, data = pcall(noctalia.json.decode, res.stdout or "")
+		local parsed = agy.parseQuota(if decoded then data else nil, now())
+		if not parsed.ok then
+			applyResult(source, parsed.error, 0, nil)
+			return
+		end
+		applyResult(source, "", 0, parsed.snapshot)
 	end)
 end
 
