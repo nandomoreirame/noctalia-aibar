@@ -1,11 +1,13 @@
--- AI Bar panel: one section per provider, one card per usage window; Claude
--- accounts share one section with a tab row. Renders only from the service's
--- `view`. The host already pads the panel, so the root adds no padding.
+-- AI Bar panel: a row of provider tabs and the selected provider's section, one
+-- card per usage window; Claude accounts share their section with a sub-tab
+-- row. Renders only from the service's `view`. The host already pads the
+-- panel, so the root adds no padding.
 
 local present = require("./lib/present.luau")
 
 local isOpen = false
 local claudeTab = 1
+local providerTab = "claude"
 local current = nil
 
 local tr = present.translator(function(...)
@@ -98,7 +100,7 @@ local function section(c: any, tabs: any): any
 	if c.extra then
 		table.insert(windows, c.extra)
 	end
-	-- Grok products share the billing period, and the limit and error notes are
+	-- Products (Grok, Cursor) share the billing period, and the limit and error notes are
 	-- about the same source, so all of them close the last window card: a card of
 	-- their own would push the panel past its fixed height.
 	local footer = products
@@ -147,31 +149,50 @@ local function header(m: any): any
 	})
 end
 
+local function providerTabs(list: any): any
+	local buttons = {}
+	for _, p in list do
+		table.insert(buttons, ui.button({
+			key = "provider-" .. p.key,
+			text = p.label,
+			variant = "ghost",
+			controlSize = "sm",
+			selected = p.selected,
+			onClick = function()
+				providerTab = p.key
+				claudeTab = 1
+				render()
+			end,
+		}))
+	end
+	return ui.row({ align = "center", gap = 4 }, buttons)
+end
+
 function render()
 	if not isOpen then
 		return
 	end
-	local m = present.panel(current, claudeTab, tr)
-	local sections = {}
-	if m.claude then
-		table.insert(sections, section(m.claude, m.tabs))
+	local m = present.panel(current, claudeTab, tr, providerTab)
+	local children = { header(m) }
+	if #m.providers > 1 then
+		table.insert(children, providerTabs(m.providers))
 	end
-	for _, c in m.others do
-		table.insert(sections, section(c, {}))
+	local body = {}
+	if m.section then
+		table.insert(body, section(m.section, m.tabs))
 	end
-	panel.render(ui.column({ flexGrow = 1, gap = 12, align = "stretch" }, {
-		header(m),
-		ui.scroll({ flexGrow = 1, gap = 16, align = "stretch" }, sections),
-	}))
+	table.insert(children, ui.scroll({ flexGrow = 1, gap = 16, align = "stretch" }, body))
+	panel.render(ui.column({ flexGrow = 1, gap = 12, align = "stretch" }, children))
 end
 
 function onRefresh()
 	noctalia.state.set("cmd.refresh", present.bump(noctalia.state.get("cmd.refresh")))
 end
 
--- The panel opens on the active account, like v4.
+-- The panel opens on the bar source's provider and its first account, like v4.
 function onOpen(_context: any)
 	isOpen = true
+	providerTab = present.providerOf(current, if current then current.barKey else nil)
 	claudeTab = 1
 	render()
 end

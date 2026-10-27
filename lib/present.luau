@@ -8,8 +8,10 @@ local Present = {}
 
 local FILL = { ok = "primary", ahead = "tertiary", critical = "error" }
 
+local GLYPH = { claude = "asterisk", grok = "brand-x", codex = "brand-openai", agy = "brand-google", cursor = "pointer" }
+
 local function glyphOf(provider: string): string
-	return if provider == "grok" then "brand-x" else "asterisk"
+	return GLYPH[provider] or "asterisk"
 end
 
 local function fraction(p: any): number
@@ -76,7 +78,7 @@ function Present.bar(view: any, tr: any)
 		if reset ~= "" then
 			value ..= " · " .. tr("panel.resets", { t = reset })
 		end
-		table.insert(rows, { tr(format.windowKey(w)), value })
+		table.insert(rows, { format.windowLabel(w, tr), value })
 	end
 	local limit = format.limitMessage(pace.exhausted(snap, now), now)
 	if limit then
@@ -146,7 +148,7 @@ function Present.card(entry: any, nowMs: number, tr: any)
 		end
 		return card
 	end
-	if entry.provider == "claude" and typeof(snap.plan) == "string" and snap.plan ~= "" then
+	if typeof(snap.plan) == "string" and snap.plan ~= "" then
 		card.plan = string.upper(string.sub(snap.plan, 1, 1)) .. string.sub(snap.plan, 2)
 	end
 	-- A frozen account's last status is the point, so its age stays visible.
@@ -161,7 +163,7 @@ function Present.card(entry: any, nowMs: number, tr: any)
 		local elapsed = pace.pace(w, nowMs).elapsed
 		table.insert(card.rows, {
 			elapsed = if elapsed ~= nil then elapsed / 100 else nil,
-			label = tr(format.windowKey(w)),
+			label = format.windowLabel(w, tr),
 			percentText = format.percentText(w.percent),
 			fraction = fraction(w.percent),
 			fill = FILL[pace.status(w, nowMs)],
@@ -177,10 +179,8 @@ function Present.card(entry: any, nowMs: number, tr: any)
 			detail = format.moneyText(snap.extra, tr("format.decimal")),
 		}
 	end
-	if entry.provider == "grok" then
-		for _, p in snap.products or {} do
-			table.insert(card.products, { name = p.name, percentText = format.percentText(p.percent) })
-		end
+	for _, p in snap.products or {} do
+		table.insert(card.products, { name = p.name, percentText = format.percentText(p.percent) })
 	end
 	local limit = format.limitMessage(pace.exhausted(snap, nowMs), nowMs)
 	if limit then
@@ -189,31 +189,48 @@ function Present.card(entry: any, nowMs: number, tr: any)
 	return card
 end
 
--- claudeTab: 1-based index of the Claude account shown in the shared card.
-function Present.panel(view: any, claudeTab: number, tr: any)
-	local model = { title = tr("panel.title"), refresh = tr("panel.refresh"), busy = false, tabs = {}, claude = nil, others = {} }
+-- Short tab labels; the section title keeps the full provider name.
+Present.TAB_LABEL = { claude = "Claude", grok = "Grok", codex = "Codex", agy = "Agy", cursor = "Cursor" }
+
+-- The provider the panel opens on: the bar source's.
+function Present.providerOf(view: any, key: string?): string
+	local entry = if view and key then Present.find(view, key) else nil
+	return if entry then entry.provider else "claude"
+end
+
+-- claudeTab: 1-based index of the Claude account shown under the Claude tab.
+-- provider: the selected top tab; one without a source falls back to the first.
+function Present.panel(view: any, claudeTab: number, tr: any, provider: string?)
+	local model = { title = tr("panel.title"), refresh = tr("panel.refresh"), busy = false, providers = {}, tabs = {}, section = nil }
 	if not view or not view.sources then
 		return model
 	end
 	local now = view.now or 0
-	local claudes = {}
+	local order = {}
+	local byProvider = {}
 	for _, s in view.sources do
 		if s.inFlight then
 			model.busy = true
 		end
-		if s.provider == "claude" then
-			table.insert(claudes, s)
-		else
-			table.insert(model.others, Present.card(s, now, tr))
+		if byProvider[s.provider] == nil then
+			byProvider[s.provider] = {}
+			table.insert(order, s.provider)
 		end
+		table.insert(byProvider[s.provider], s)
 	end
-	if #claudes > 0 then
-		local index = math.clamp(claudeTab, 1, #claudes)
-		model.claude = Present.card(claudes[index], now, tr)
-		if #claudes > 1 then
-			for i, s in claudes do
-				table.insert(model.tabs, { label = if s.frozen then s.name else tr("panel.active"), selected = i == index })
-			end
+	if #order == 0 then
+		return model
+	end
+	local selected = if provider ~= nil and byProvider[provider] ~= nil then provider else order[1]
+	for _, p in order do
+		table.insert(model.providers, { key = p, label = Present.TAB_LABEL[p] or p, selected = p == selected })
+	end
+	local list = byProvider[selected]
+	local index = math.clamp(claudeTab, 1, #list)
+	model.section = Present.card(list[index], now, tr)
+	if #list > 1 then
+		for i, s in list do
+			table.insert(model.tabs, { label = if s.frozen then s.name else tr("panel.active"), selected = i == index })
 		end
 	end
 	return model

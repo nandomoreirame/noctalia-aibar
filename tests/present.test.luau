@@ -69,6 +69,31 @@ describe("present.bar", function()
 		local ahead = { now = 4 * H, barKey = "claude", sources = { source({ snapshot = { windows = { { id = "session", percent = 60, startMs = 0, endMs = 10 * H } } } }) } }
 		assert.equal(present.bar(ahead, tr).fill, "tertiary")
 	end)
+
+	it("shows each provider's glyph, plan, grouped labels and products", function()
+		local snap = { provider = "agy", plan = "", primary = "max", windows = { { id = "gemini-5h", group = "Gemini Models", span = "session", percent = 40, startMs = 0, endMs = 5 * H } }, products = {}, fetchedAt = 0 }
+		local c = present.card(source({ key = "agy", provider = "agy", snapshot = snap }), H, tr)
+		assert.equal(c.glyph, "brand-google")
+		assert.equal(c.title, "provider.agy")
+		assert.equal(c.rows[1].label, "Gemini Models · window.session")
+		local codex = present.card(source({ key = "codex", provider = "codex", snapshot = { provider = "codex", plan = "plus", windows = {}, products = {}, fetchedAt = 0 } }), 0, tr)
+		assert.equal(codex.glyph, "brand-openai")
+		assert.equal(codex.plan, "Plus")
+		local cur = present.card(source({ key = "cursor", provider = "cursor", snapshot = { provider = "cursor", plan = "", windows = {}, products = { { name = "Auto", percent = 12.5 } }, fetchedAt = 0 } }), 0, tr)
+		assert.equal(cur.glyph, "pointer")
+		assert.deepEqual(cur.products, { { name = "Auto", percentText = "13%" } })
+	end)
+
+	it("shows the most-used agy window in the bar with its group", function()
+		local snap = { provider = "agy", primary = "max", windows = {
+			{ id = "a", group = "G", span = "session", percent = 10, startMs = 0, endMs = 5 * H },
+			{ id = "b", group = "Argon", span = "weekly", percent = 100, startMs = 0, endMs = 168 * H },
+		}, products = {}, fetchedAt = 0 }
+		local m = present.bar({ now = H, barKey = "agy", sources = { source({ key = "agy", provider = "agy", snapshot = snap }) } }, tr)
+		assert.equal(m.glyph, "brand-google")
+		assert.equal(m.label, "100% · 6d23h")
+		assert.equal(m.tooltip[2][1], "Argon · window.weekly")
+	end)
 end)
 
 describe("present.card", function()
@@ -129,31 +154,51 @@ describe("present.panel", function()
 		source({ email = "a@x.dev" }),
 		source({ key = "claude:f", name = "F", frozen = true }),
 		source({ key = "grok", provider = "grok", inFlight = true }),
+		source({ key = "codex", provider = "codex", error = "codex-login" }),
 	} }
 
-	it("puts Claude accounts in one card with tabs and the rest in their own cards", function()
-		local m = present.panel(v, 2, tr)
+	it("lists one tab per provider in source order and shows the selected one", function()
+		local m = present.panel(v, 1, tr, "codex")
 		assert.equal(m.title, "panel.title")
 		assert.equal(m.refresh, "panel.refresh")
 		assert.equal(m.busy, true)
-		assert.deepEqual(m.tabs, { { label = "panel.active", selected = false }, { label = "F", selected = true } })
-		assert.equal(m.claude.badge.text, "panel.frozen")
-		assert.equal(#m.others, 1)
-		assert.equal(m.others[1].title, "provider.grok")
+		assert.deepEqual(m.providers, {
+			{ key = "claude", label = "Claude", selected = false },
+			{ key = "grok", label = "Grok", selected = false },
+			{ key = "codex", label = "Codex", selected = true },
+		})
+		assert.equal(m.section.title, "provider.codex")
+		assert.equal(m.section.error, "error.codex-login")
+		assert.deepEqual(m.tabs, {})
 	end)
 
-	it("clamps the tab and hides tabs with one Claude account", function()
-		assert.equal(present.panel(v, 9, tr).tabs[2].selected, true)
+	it("keeps the Claude accounts as sub-tabs of the Claude tab", function()
+		local m = present.panel(v, 2, tr, "claude")
+		assert.deepEqual(m.tabs, { { label = "panel.active", selected = false }, { label = "F", selected = true } })
+		assert.equal(m.section.badge.text, "panel.frozen")
+		assert.equal(present.panel(v, 9, tr, "claude").tabs[2].selected, true)
+	end)
+
+	it("falls back to the first provider and hides sub-tabs with one Claude account", function()
 		local single = { now = 0, barKey = "claude", sources = { source({}), source({ key = "grok", provider = "grok" }) } }
-		local m = present.panel(single, 1, tr)
+		local m = present.panel(single, 1, tr, "cursor")
+		assert.equal(m.providers[1].selected, true)
+		assert.equal(m.section.title, "provider.claude")
 		assert.deepEqual(m.tabs, {})
 		assert.equal(m.busy, false)
 	end)
 
 	it("is empty before the first view", function()
 		local m = present.panel(nil, 1, tr)
-		assert.equal(m.claude, nil)
-		assert.deepEqual(m.others, {})
+		assert.equal(m.section, nil)
+		assert.deepEqual(m.providers, {})
+		assert.deepEqual(m.tabs, {})
+	end)
+
+	it("opens on the provider of the bar source", function()
+		assert.equal(present.providerOf(v, "codex"), "codex")
+		assert.equal(present.providerOf(v, "claude:f"), "claude")
+		assert.equal(present.providerOf(nil, "x"), "claude")
 	end)
 end)
 
