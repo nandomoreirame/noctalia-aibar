@@ -36,6 +36,7 @@ export type MockOpts = {
 	now: number?,
 	fileInfo: { [string]: any }?,
 	vertical: boolean?,
+	commands: { string }?,
 }
 
 type CallLog = { [string]: { { any } } }
@@ -53,6 +54,7 @@ type EnvPrivate = {
 	http: { any },
 	fileInfo: { [string]: any },
 	vertical: boolean,
+	commands: { [string]: boolean },
 }
 
 -- Side table: env identity -> private state (keeps host env clean for setfenv).
@@ -600,7 +602,7 @@ local function buildNoctalia(priv: EnvPrivate): any
 		runInTerminal = recorder(priv, "noctalia.runInTerminal", "true"),
 		commandExists = function(name: string): boolean
 			record(priv, "noctalia.commandExists", { name })
-			return false
+			return priv.commands[name] == true
 		end,
 		getenv = function(name: string): string?
 			record(priv, "noctalia.getenv", { name })
@@ -784,8 +786,13 @@ function Mock.new(opts: MockOpts?): any
 			fileInfo[path] = { size = #content, mtime = 1, isDir = false }
 		end
 	end
+	local commands = {}
+	for _, name in o.commands or {} do
+		commands[name] = true
+	end
 	local priv: EnvPrivate = {
 		calls = {},
+		commands = commands,
 		config = copyMap(o.config),
 		async = copyMap(o.async :: any) :: any,
 		colors = copyMap(o.colors),
