@@ -1,7 +1,8 @@
 # AI Bar
 
-AI Bar shows Claude Code and Grok (SuperGrok / Grok Build) plan usage in the
-Noctalia bar and in a panel: percent, reset countdown and a progress bar.
+AI Bar shows Claude Code, Grok (SuperGrok / Grok Build), Codex, Antigravity
+(`agy`) and Cursor plan usage in the Noctalia bar and in a panel with one tab per
+provider: percent, reset countdown and a progress bar.
 
 This branch is the Noctalia v5 plugin (Luau, `plugin.toml`). The Noctalia v4
 plugin (QML, for noctalia-shell 4.7.x) is frozen at v0.1.3 on branch
@@ -27,8 +28,10 @@ ln -s ~/dev/projects/noctalia-aibar ~/.local/share/noctalia/plugins/aibar
 noctalia msg plugins enable nandomoreirame/aibar
 ```
 
-Add `nandomoreirame/aibar:bar` to a bar. Left click opens the panel. Middle click
-cycles the source (Claude accounts, then Grok) and the choice is saved.
+Add `nandomoreirame/aibar:bar` to a bar. Left click opens the panel on the tab of
+the bar's provider (`Claude // Grok // Codex // Agy // Cursor`; Claude accounts
+are sub-tabs). Middle click cycles the source (Claude accounts, then Grok, Codex,
+Agy and Cursor, skipping the ones turned off) and the choice is saved.
 
 ```bash
 noctalia msg panel-toggle nandomoreirame/aibar:panel
@@ -39,20 +42,24 @@ noctalia msg panel-toggle nandomoreirame/aibar:panel
 - Noctalia 5.x with plugin API 22 or newer
 - `claude` CLI, logged in (`~/.claude/.credentials.json` present)
 - `grok login` already done (`~/.grok/auth.json` present)
+- Codex: `codex` logged in with ChatGPT (`~/.codex/auth.json` with `tokens`)
+- Cursor: signed in to the Cursor IDE, and `sqlite3` on `PATH` to read its session
+- Antigravity: `agy` on `PATH` and signed in; the plugin runs `agy -p "/quota" --output-format json`
 - Optional: `jq`, for `scripts/claude-swap`
 
 The plugin only reads the credential files. It never writes them, copies them,
-or refreshes a token.
+or refreshes a token. It never reads an agy token: agy authenticates itself.
 
 ## Settings
 
 | Setting | Default | What it does |
 |---------|---------|--------------|
-| Provider in the bar | `claude` | Source the bar shows: `claude`, `grok`, or `claude:<account name>` (as in Frozen Claude accounts; case and spaces do not matter). Middle click cycles the sources. Changing this setting overrides that choice. |
+| Provider in the bar | `claude` | Source the bar shows: `claude`, `grok`, `codex`, `agy`, `cursor`, or `claude:<account name>` (as in Frozen Claude accounts; case and spaces do not matter). Middle click cycles the sources. Changing this setting overrides that choice. |
 | Refresh every (minutes) | `5` | Poll interval. Minimum 2, maximum 60. |
 | Notify at (%) | `97` | One toast when a window crosses this percent upward. `0` turns notifications off. |
 | Claude User-Agent | `claude-cli/2.1.281 (external, cli)` | Advanced. Must look like a published Claude Code CLI, or the usage endpoint answers 429. |
 | Frozen Claude accounts | empty | One `Name=dir` per entry. The panel shows their last status. Example: `Frozen=~/.claude-freeze`. |
+| Show Grok / Codex / Antigravity / Cursor | on | Off: no tab, no poll, skipped by the middle click. Claude is always on. |
 
 ## IPC
 
@@ -63,20 +70,30 @@ noctalia msg plugin nandomoreirame/aibar:usage all cycle
 
 ## Notes
 
-**Network.** `GET https://api.anthropic.com/api/oauth/usage` and
-`GET https://cli-chat-proxy.grok.com/v1/billing?format=credits`, every
-`poll_minutes`, on refresh, and when a credential file changes. Native HTTP
+**Network.** `GET https://api.anthropic.com/api/oauth/usage`,
+`GET https://cli-chat-proxy.grok.com/v1/billing?format=credits`,
+`GET https://chatgpt.com/backend-api/wham/usage` and
+`POST https://api2.cursor.sh/aiserver.v1.DashboardService/GetCurrentPeriodUsage`,
+every `poll_minutes`, on refresh, and when a credential file changes. Native HTTP
 client. Tokens travel only in request headers.
 
 **Files read**, never written: `~/.claude/.credentials.json`, `~/.claude.json`,
-`<dir>/.credentials.json` and `<dir>/.claude.json` for each frozen account, and
-`~/.grok/auth.json`.
+`<dir>/.credentials.json` and `<dir>/.claude.json` for each frozen account,
+`~/.grok/auth.json`, `~/.codex/auth.json`, and Cursor's
+`~/.config/Cursor/User/globalStorage/state.vscdb` (through `sqlite3 -readonly`).
 
 **Files written**, in the plugin data directory: `snapshots.json` (usage data,
 no credential) and `selection.json` (the bar source).
 
-**Processes.** None. `scripts/claude-swap` is a separate CLI. The plugin never
-runs it.
+**Processes.** `sqlite3 -readonly <state.vscdb> <query>` for the Cursor token
+(argv holds only the query) and `agy -p "/quota" --output-format json` for the
+Antigravity quota (about 5 s, no model turn; a failed run waits 5 min before the
+next). Their output is never logged. `scripts/claude-swap` is a separate CLI. The
+plugin never runs it.
+
+**Antigravity.** The figures are the ones agy's own Models & Quota page shows:
+one window per bucket (`Gemini Models`, `Claude and GPT models`, `Gemini 4 Argon`,
+5 h and weekly). The bar shows the most-used one.
 
 **Frozen accounts.** `scripts/claude-swap` swaps the active Claude Code login
 (`~/.claude`) with the frozen one (`~/.claude-freeze`). Only the login moves:
@@ -108,6 +125,7 @@ noctalia plugins lint .
 
 ## Credits
 
-The endpoint contracts were learned from
+The endpoint contracts, including Codex's `wham/usage` and agy's `/quota`
+command, were learned from
 [akitaonrails/ai-usagebar](https://github.com/akitaonrails/ai-usagebar) (MIT).
 No code was reused.
