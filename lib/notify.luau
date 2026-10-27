@@ -18,7 +18,7 @@ function Notify.crossings(snapshot: any, armed: any, threshold: any, source: str
 			nextArmed[key] = nil
 		elseif nextArmed[key] ~= stamp then
 			nextArmed[key] = stamp
-			table.insert(fire, { provider = snapshot.provider, id = w.id, periodType = w.periodType, percent = w.percent, endMs = w.endMs })
+			table.insert(fire, { provider = snapshot.provider, id = w.id, periodType = w.periodType, group = w.group, span = w.span, percent = w.percent, endMs = w.endMs })
 		end
 	end
 	return { fire = fire, armed = nextArmed }

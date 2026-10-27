@@ -41,4 +41,11 @@ describe("notify.crossings", function()
 		assert.deepEqual(notify.crossings(snap(100, 1000), {}, 0).fire, {})
 		assert.deepEqual(notify.crossings(nil, {}, 97).fire, {})
 	end)
+	it("carries the group and span of a grouped window", function()
+		local s = { provider = "agy", windows = { { id = "gemini-5h", group = "Gemini Models", span = "session", percent = 99, endMs = 5 } } }
+		local fired = notify.crossings(s, {}, 97, "agy").fire[1]
+		assert.equal(fired.group, "Gemini Models")
+		assert.equal(fired.span, "session")
+		assert.equal(fired.id, "gemini-5h")
+	end)
 end)
