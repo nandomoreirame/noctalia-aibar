@@ -1,6 +1,6 @@
 {
   "title": "AI Bar",
-  "provider": { "claude": "Claude Code", "grok": "Grok" },
+  "provider": { "claude": "Claude Code", "grok": "Grok", "codex": "Codex", "agy": "Antigravity", "cursor": "Cursor" },
   "window": {
     "session": "Session (5h)",
     "weekly": "Weekly",
@@ -8,7 +8,8 @@
     "weekly-sonnet": "Weekly Sonnet",
     "period-weekly": "Weekly",
     "period-monthly": "Monthly",
-    "extra": "Extra usage"
+    "extra": "Extra usage",
+    "quota": "Quota"
   },
   "pace": { "ahead": "{n} pts ahead", "behind": "{n} pts behind", "on": "on pace" },
   "panel": {
@@ -31,14 +32,19 @@
     "network": "Network error",
     "http": "HTTP {code}",
     "rate-limited": "Rate limited, retrying in {n} min",
-    "parse": "Unexpected response"
+    "parse": "Unexpected response",
+    "codex-login": "Codex token expired: open `codex` to renew it",
+    "cursor-login": "No Cursor session: sign in to Cursor",
+    "cursor-sqlite": "Install sqlite3 to read the Cursor session",
+    "agy-login": "Run `agy` to sign in",
+    "agy-missing": "Antigravity CLI (`agy`) not found"
   },
   "format": { "decimal": "." },
   "notify": { "title": "{provider}: {window} at {n}%", "body": "Resets in {t}" },
   "settings": {
     "bar_provider": {
       "label": "Provider in the bar",
-      "description": "Source the bar shows: claude, grok or claude:<account name>. Middle click on the widget cycles through the sources; changing this setting overrides that choice."
+      "description": "Source the bar shows: claude, grok, codex, agy, cursor or claude:<account name>. Middle click on the widget cycles through the sources; changing this setting overrides that choice."
     },
     "poll_minutes": { "label": "Refresh every (minutes)" },
     "notify_threshold": { "label": "Notify at (%)", "description": "0 turns notifications off." },
@@ -49,6 +55,10 @@
     "claude_accounts": {
       "label": "Frozen Claude accounts",
       "description": "One Name=dir per entry. The panel shows their last status. Example: Frozen=~/.claude-freeze"
-    }
+    },
+    "show_grok": { "label": "Show Grok" },
+    "show_codex": { "label": "Show Codex" },
+    "show_agy": { "label": "Show Antigravity" },
+    "show_cursor": { "label": "Show Cursor" }
   }
 }

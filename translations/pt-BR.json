@@ -1,6 +1,6 @@
 {
   "title": "AI Bar",
-  "provider": { "claude": "Claude Code", "grok": "Grok" },
+  "provider": { "claude": "Claude Code", "grok": "Grok", "codex": "Codex", "agy": "Antigravity", "cursor": "Cursor" },
   "window": {
     "session": "Sessão (5h)",
     "weekly": "Semanal",
@@ -8,7 +8,8 @@
     "weekly-sonnet": "Semanal Sonnet",
     "period-weekly": "Semanal",
     "period-monthly": "Mensal",
-    "extra": "Uso extra"
+    "extra": "Uso extra",
+    "quota": "Cota"
   },
   "pace": { "ahead": "{n} pts à frente", "behind": "{n} pts atrás", "on": "no ritmo" },
   "panel": {
@@ -31,14 +32,19 @@
     "network": "Erro de rede",
     "http": "HTTP {code}",
     "rate-limited": "Limite de requisições, nova tentativa em {n} min",
-    "parse": "Resposta inesperada"
+    "parse": "Resposta inesperada",
+    "codex-login": "Token do Codex expirou: abra o `codex` para renovar",
+    "cursor-login": "Sem sessão do Cursor: entre no Cursor",
+    "cursor-sqlite": "Instale o sqlite3 para ler a sessão do Cursor",
+    "agy-login": "Rode `agy` para entrar",
+    "agy-missing": "CLI do Antigravity (`agy`) não encontrado"
   },
   "format": { "decimal": "," },
   "notify": { "title": "{provider}: {window} em {n}%", "body": "Reinicia em {t}" },
   "settings": {
     "bar_provider": {
       "label": "Provedor na barra",
-      "description": "Fonte exibida na barra: claude, grok ou claude:<nome da conta>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
+      "description": "Fonte exibida na barra: claude, grok, codex, agy, cursor ou claude:<nome da conta>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
     },
     "poll_minutes": { "label": "Atualizar a cada (minutos)" },
     "notify_threshold": { "label": "Avisar em (%)", "description": "0 desliga os avisos." },
@@ -49,6 +55,10 @@
     "claude_accounts": {
       "label": "Contas congeladas do Claude",
       "description": "Um Nome=diretório por item. O painel mostra o último status delas. Exemplo: Congelada=~/.claude-freeze"
-    }
+    },
+    "show_grok": { "label": "Mostrar Grok" },
+    "show_codex": { "label": "Mostrar Codex" },
+    "show_agy": { "label": "Mostrar Antigravity" },
+    "show_cursor": { "label": "Mostrar Cursor" }
   }
 }

@@ -50,13 +50,20 @@ describe("translations", function()
 				error("missing translation: " .. key)
 			end
 		end
-		assert.equal(count, 9)
+		assert.equal(count, 13)
+	end)
+	it("names every provider and its errors", function()
+		for _, key in { "provider.codex", "provider.agy", "provider.cursor", "window.quota", "error.codex-login", "error.cursor-login", "error.cursor-sqlite", "error.agy-login", "error.agy-missing" } do
+			if en[key] == nil then
+				error("missing translation: " .. key)
+			end
+		end
 	end)
 end)
 
 describe("plugin.toml", function()
 	it("declares the id, api level, version and entries", function()
-		for _, needle in { 'id = "nandomoreirame/aibar"', "plugin_api = 22", 'version = "0.2.0"', 'entry = "service.luau"', 'entry = "widget.luau"', 'entry = "panel.luau"', 'middle = "none"' } do
+		for _, needle in { 'id = "nandomoreirame/aibar"', "plugin_api = 22", 'version = "0.3.0"', 'entry = "service.luau"', 'entry = "widget.luau"', 'entry = "panel.luau"', 'middle = "none"' } do
 			if string.find(toml, needle, 1, true) == nil then
 				error("plugin.toml lacks " .. needle)
 			end
@@ -71,7 +78,7 @@ end)
 
 describe("lib purity", function()
 	it("lib modules never touch host globals", function()
-		for _, name in { "accounts", "claude", "creds", "format", "grok", "notify", "pace", "poll", "present", "time", "view" } do
+		for _, name in { "accounts", "agy", "claude", "codex", "creds", "cursor", "format", "grok", "notify", "pace", "poll", "present", "time", "view" } do
 			-- Comments and string literals may name host APIs; only code counts.
 			local source = string.gsub(modules.text("lib/" .. name .. ".luau"), "%-%-[^\n]*", "")
 			source = string.gsub(source, '"[^"\n]*"', '""')

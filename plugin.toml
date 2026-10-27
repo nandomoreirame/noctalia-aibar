@@ -1,12 +1,12 @@
 id = "nandomoreirame/aibar"
 name = "AI Bar"
-version = "0.2.0"
+version = "0.3.0"
 plugin_api = 22
 author = "Fernando Moreira Costa"
 license = "MIT"
 icon = "chart-bar"
-description = "Claude Code and Grok plan usage in the bar: percent, reset countdown and a progress bar."
-tags = ["ai", "usage", "claude", "grok"]
+description = "Claude Code, Grok, Codex, Antigravity and Cursor plan usage in the bar: percent, reset countdown and a progress bar."
+tags = ["ai", "usage", "claude", "grok", "codex", "antigravity", "cursor"]
 dependencies = []
 
 [[setting]]
@@ -47,6 +47,30 @@ type = "string_list"
 label_key = "settings.claude_accounts.label"
 description_key = "settings.claude_accounts.description"
 default = []
+
+[[setting]]
+key = "show_grok"
+type = "bool"
+label_key = "settings.show_grok.label"
+default = true
+
+[[setting]]
+key = "show_codex"
+type = "bool"
+label_key = "settings.show_codex.label"
+default = true
+
+[[setting]]
+key = "show_agy"
+type = "bool"
+label_key = "settings.show_agy.label"
+default = true
+
+[[setting]]
+key = "show_cursor"
+type = "bool"
+label_key = "settings.show_cursor.label"
+default = true
 
 [[service]]
 id = "usage"
