@@ -42,4 +42,14 @@ function Creds.grokKey(data: any)
 	return { ok = false, error = "grok-login" }
 end
 
+-- ~/.codex/auth.json -> { ok, token, accountId } | { ok = false, error }. An
+-- API-key login (OPENAI_API_KEY only) has no plan usage to read.
+function Creds.codexToken(data: any)
+	local t = if typeof(data) == "table" then data.tokens else nil
+	if typeof(t) ~= "table" or typeof(t.access_token) ~= "string" or t.access_token == "" then
+		return { ok = false, error = "codex-login" }
+	end
+	return { ok = true, token = t.access_token, accountId = if typeof(t.account_id) == "string" then t.account_id else "" }
+end
+
 return Creds

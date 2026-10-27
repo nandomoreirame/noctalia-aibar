@@ -39,3 +39,23 @@ describe("creds.grokKey", function()
 		assert.deepEqual(creds.grokKey({ { key = "K" } }), { ok = false, error = "grok-login" })
 	end)
 end)
+
+describe("creds.codexToken", function()
+	it("reads the access token and the account id", function()
+		local data = { auth_mode = "chatgpt", tokens = { access_token = "T", account_id = "A", refresh_token = "R" } }
+		assert.deepEqual(creds.codexToken(data), { ok = true, token = "T", accountId = "A" })
+		assert.deepEqual(creds.codexToken({ tokens = { access_token = "T" } }), { ok = true, token = "T", accountId = "" })
+	end)
+
+	it("asks for a login without a token", function()
+		assert.deepEqual(creds.codexToken(nil), { ok = false, error = "codex-login" })
+		assert.deepEqual(creds.codexToken({ tokens = { access_token = "" } }), { ok = false, error = "codex-login" })
+		assert.deepEqual(creds.codexToken({ OPENAI_API_KEY = "k" }), { ok = false, error = "codex-login" })
+		assert.deepEqual(creds.codexToken({ tokens = "x" }), { ok = false, error = "codex-login" })
+		assert.deepEqual(creds.codexToken({ tokens = { access_token = 5 } }), { ok = false, error = "codex-login" })
+	end)
+
+	it("drops an account id that is not a string", function()
+		assert.deepEqual(creds.codexToken({ tokens = { access_token = "T", account_id = 7 } }), { ok = true, token = "T", accountId = "" })
+	end)
+end)
