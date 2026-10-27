@@ -70,3 +70,11 @@ describe("pace.project", function()
 		assert.equal(pace.project({ windows = { { id = "x", percent = 5 } } }, H).windows[1].percent, 5)
 	end)
 end)
+
+describe("pace.primaryWindow max", function()
+	it("picks the most-used window when the snapshot asks for it", function()
+		local snap = { primary = "max", windows = { { id = "session", percent = 10 }, { id = "b", percent = 100 }, { id = "c", percent = 40 } } }
+		assert.equal(pace.primaryWindow(snap).id, "b")
+		assert.equal(pace.primaryWindow({ windows = snap.windows }).id, "session")
+	end)
+end)

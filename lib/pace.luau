@@ -33,10 +33,21 @@ function Pace.status(w: any, nowMs: number): string
 	return "ok"
 end
 
--- The window the bar shows: Claude's 5 h session, Grok's period, else the first.
+-- The window the bar shows: the most-used one when the snapshot sets
+-- primary = "max" (agy groups block independently), else Claude's 5 h session,
+-- Grok's period, else the first.
 function Pace.primaryWindow(snapshot: any): any
 	if not snapshot or not snapshot.windows or #snapshot.windows == 0 then
 		return nil
+	end
+	if snapshot.primary == "max" then
+		local best = snapshot.windows[1]
+		for _, w in snapshot.windows do
+			if w.percent > best.percent then
+				best = w
+			end
+		end
+		return best
 	end
 	for _, id in PRIMARY do
 		for _, w in snapshot.windows do
