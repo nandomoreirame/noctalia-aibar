@@ -75,4 +75,24 @@ describe("format", function()
 		assert.equal(format.moneyText({ used = 1, limit = 2, currency = "USD" }), "1.00 / 2.00 USD")
 		assert.equal(format.moneyText(nil, ","), "")
 	end)
+	it("labels windows by span and prefixes their group", function()
+		local function tr(key)
+			return key
+		end
+		assert.equal(format.windowKey({ id = "gemini-5h", span = "session" }), "window.session")
+		assert.equal(format.windowKey({ id = "x", span = "quota" }), "window.quota")
+		assert.equal(format.windowLabel({ id = "gemini-5h", group = "Gemini Models", span = "session" }, tr), "Gemini Models · window.session")
+		assert.equal(format.windowLabel({ id = "weekly" }, tr), "window.weekly")
+		assert.equal(format.windowLabel({ id = "period", periodType = "monthly", group = "" }, tr), "window.period-monthly")
+	end)
+
+	it("maps auth to each provider's login message and quiets their login errors", function()
+		for provider, key in { grok = "error.grok-login", codex = "error.codex-login", cursor = "error.cursor-login", agy = "error.agy-login", claude = "error.claude-expired" } do
+			assert.equal(format.errorMessage({ error = "auth" }, provider, 0).key, key)
+		end
+		for _, e in { "codex-login", "cursor-login", "agy-login" } do
+			assert.equal(format.errorMessage({ error = e }, "x", 0, true), nil)
+			assert.equal(format.errorMessage({ error = e }, "x", 0).key, "error." .. e)
+		end
+	end)
 end)

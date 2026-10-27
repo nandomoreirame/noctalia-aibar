@@ -1,6 +1,7 @@
 -- Per-source request state. Plain data, replaced (never mutated) on every step.
 -- error: "" | "network" | "http" | "auth" | "rate-limited" | "parse" | "grok-format"
---        | "claude-login" | "claude-expired" | "grok-login"
+--        | "claude-login" | "claude-expired" | "grok-login" | "codex-login" | "cursor-login"
+--        | "cursor-sqlite" | "agy-login" | "agy-missing"
 
 local Poll = {}
 
@@ -8,6 +9,9 @@ Poll.BACKOFF_MS = 5 * 60000
 -- noctalia.http times out at 30 s; this guard also covers a callback lost to a
 -- reload or suspend.
 Poll.REQUEST_TIMEOUT_MS = 30000
+
+-- A failed agy run waits for the backoff like a 429: each run costs seconds.
+local BACKOFF_KINDS = { ["agy-login"] = true }
 
 local function with(s: any, fields: any): any
 	local out = table.clone(s)
@@ -45,6 +49,9 @@ function Poll.fail(s: any, kind: string, code: number, nowMs: number): any
 			err = "rate-limited"
 			retryAt = nowMs + Poll.BACKOFF_MS
 		end
+	end
+	if BACKOFF_KINDS[kind] then
+		retryAt = nowMs + Poll.BACKOFF_MS
 	end
 	return with(s, {
 		inFlight = false,

@@ -48,14 +48,37 @@ function Format.ago(fetchedAt: number, nowMs: number): string
 	return Format.countdown(nowMs, fetchedAt)
 end
 
+-- span (agy buckets, Codex extra limits) names the window kind; id names the
+-- window itself.
 function Format.windowKey(w: any): string
+	if w.span ~= nil then
+		return "window." .. w.span
+	end
 	if w.id == "period" then
 		return "window.period-" .. (if w.periodType == "monthly" then "monthly" else "weekly")
 	end
 	return "window." .. w.id
 end
 
-local LOGIN_ERRORS = { auth = true, ["grok-login"] = true, ["claude-login"] = true, ["claude-expired"] = true }
+-- "Gemini Models · Weekly" for a window of a named group, else the plain label.
+function Format.windowLabel(w: any, tr: any): string
+	local base = tr(Format.windowKey(w))
+	if typeof(w.group) == "string" and w.group ~= "" then
+		return w.group .. " · " .. base
+	end
+	return base
+end
+
+local LOGIN_ERRORS = {
+	auth = true,
+	["grok-login"] = true,
+	["claude-login"] = true,
+	["claude-expired"] = true,
+	["codex-login"] = true,
+	["cursor-login"] = true,
+	["agy-login"] = true,
+}
+local AUTH_KEY = { grok = "error.grok-login", codex = "error.codex-login", cursor = "error.cursor-login", agy = "error.agy-login" }
 
 -- { key, vars? } for a source's request error; nil when there is none. quiet
 -- hides login errors: the CLIs renew their token only when used, so an expired
@@ -69,7 +92,7 @@ function Format.errorMessage(usage: any, provider: string, nowMs: number, quiet:
 		return nil
 	end
 	if e == "auth" then
-		return { key = if provider == "grok" then "error.grok-login" else "error.claude-expired" }
+		return { key = AUTH_KEY[provider] or "error.claude-expired" }
 	end
 	if e == "http" then
 		return { key = "error.http", vars = { code = usage.code } }
