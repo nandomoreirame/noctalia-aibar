@@ -160,7 +160,11 @@ local function providerTabs(list: any): any
 	for _, p in list do
 		table.insert(buttons, ui.button({
 			key = "provider-" .. p.key,
-			text = p.label,
+			glyph = p.glyph,
+			-- Only the selected tab shows its name; the others are icon-only so six
+			-- tabs fit the fixed panel width.
+			text = if p.selected then p.label else nil,
+			tooltip = p.label,
 			variant = "ghost",
 			controlSize = "sm",
 			selected = p.selected,

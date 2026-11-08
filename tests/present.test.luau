@@ -163,9 +163,9 @@ describe("present.panel", function()
 		assert.equal(m.refresh, "panel.refresh")
 		assert.equal(m.busy, true)
 		assert.deepEqual(m.providers, {
-			{ key = "claude", source = "claude", label = "Claude", selected = false },
-			{ key = "grok", source = "grok", label = "Grok", selected = false },
-			{ key = "codex", source = "codex", label = "Codex", selected = true },
+			{ key = "claude", source = "claude", label = "Claude", glyph = "asterisk", selected = false },
+			{ key = "grok", source = "grok", label = "Grok", glyph = "brand-x", selected = false },
+			{ key = "codex", source = "codex", label = "Codex", glyph = "brand-openai", selected = true },
 		})
 		assert.equal(m.section.title, "provider.codex")
 		assert.equal(m.section.error, "error.codex-login")

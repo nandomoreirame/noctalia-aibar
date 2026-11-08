@@ -247,7 +247,7 @@ function Present.panel(view: any, claudeTab: number, tr: any, provider: string?)
 	end
 	local selected = if provider ~= nil and byProvider[provider] ~= nil then provider else order[1]
 	for _, p in order do
-		table.insert(model.providers, { key = p, source = byProvider[p][1].key, label = Present.TAB_LABEL[p] or p, selected = p == selected })
+		table.insert(model.providers, { key = p, source = byProvider[p][1].key, label = Present.TAB_LABEL[p] or p, glyph = glyphOf(p), selected = p == selected })
 	end
 	local list = byProvider[selected]
 	local index = math.clamp(claudeTab, 1, #list)
