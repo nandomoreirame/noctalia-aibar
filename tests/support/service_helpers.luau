@@ -16,7 +16,7 @@ H.GROK_BODY = modules.text("tests/fixtures/grok-billing.json")
 
 function H.boot(opts)
 	opts = opts or {}
-	local config = { bar_provider = "claude", poll_minutes = 5, notify_threshold = 97, claude_user_agent = "claude-cli/9.9.9 (external, cli)", claude_accounts = {}, show_grok = true, show_codex = false, show_agy = false, show_cursor = false }
+	local config = { bar_provider = "claude", poll_minutes = 5, notify_threshold = 97, claude_user_agent = "claude-cli/9.9.9 (external, cli)", claude_accounts = {}, show_grok = true, show_codex = false, show_agy = false, show_cursor = false, show_opencode = false }
 	for k, v in opts.config or {} do
 		config[k] = v
 	end

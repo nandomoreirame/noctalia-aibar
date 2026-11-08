@@ -9,11 +9,11 @@ local Accounts = {}
 Accounts.MAX_EXTRA = 4
 Accounts.MAX_NAME = 24
 local DEFAULT_DIR = "~/.claude"
--- One source each, after the Claude accounts, in tab order.
-Accounts.PROVIDERS = { "grok", "codex", "agy", "cursor" }
+-- One source each; OpenCode is placed before the Claude accounts.
+Accounts.PROVIDERS = { "grok", "codex", "agy", "cursor", "opencode" }
 -- Cursor's state.vscdb changes on every IDE write and agy keeps its session in
 -- the keyring: neither is watched.
-local CRED_PATH = { grok = "~/.grok/auth.json", codex = "~/.codex/auth.json" }
+local CRED_PATH = { grok = "~/.grok/auth.json", codex = "~/.codex/auth.json", opencode = "~/.local/share/opencode/auth.json" }
 
 local function trim(s: string): string
 	return (string.gsub(s, "^%s*(.-)%s*$", "%1"))
@@ -110,7 +110,7 @@ function Accounts.sources(extra: any, enabled: any?)
 	end
 	for _, provider in Accounts.PROVIDERS do
 		if enabled == nil or enabled[provider] ~= false then
-			table.insert(list, { key = provider, provider = provider, name = "", dir = "", frozen = false })
+			table.insert(list, if provider == "opencode" then 1 else #list + 1, { key = provider, provider = provider, name = "", dir = "", frozen = false })
 		end
 	end
 	return list

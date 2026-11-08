@@ -1,6 +1,6 @@
 {
   "title": "AI Bar",
-  "provider": { "claude": "Claude Code", "grok": "Grok", "codex": "Codex", "agy": "Antigravity", "cursor": "Cursor" },
+  "provider": { "claude": "Claude Code", "grok": "Grok", "codex": "Codex", "agy": "Antigravity", "cursor": "Cursor", "opencode": "OpenCode Go" },
   "window": {
     "session": "Session (5h)",
     "weekly": "Weekly",
@@ -39,14 +39,17 @@
     "cursor-login": "No Cursor session: sign in to Cursor",
     "cursor-sqlite": "Install sqlite3 to read the Cursor session",
     "agy-login": "Run `agy` to sign in",
-    "agy-missing": "Antigravity CLI (`agy`) not found"
+    "agy-missing": "Antigravity CLI (`agy`) not found",
+    "opencode-login": "Open OpenCode and connect your Console account",
+    "opencode-expired": "OpenCode session expired: open OpenCode to renew it",
+    "opencode-sqlite": "Install sqlite3 to read the OpenCode session"
   },
   "format": { "decimal": "." },
   "notify": { "title": "{provider}: {window} at {n}%", "body": "Resets in {t}" },
   "settings": {
     "bar_provider": {
       "label": "Provider in the bar",
-      "description": "Source the bar shows: claude, grok, codex, agy, cursor or claude:<account name>. Middle click on the widget cycles through the sources; changing this setting overrides that choice."
+      "description": "Source the bar shows: claude, grok, codex, agy, cursor, opencode or claude:<account name>. Middle click on the widget cycles through the sources; changing this setting overrides that choice."
     },
     "poll_minutes": { "label": "Refresh every (minutes)" },
     "notify_threshold": { "label": "Notify at (%)", "description": "0 turns notifications off." },
@@ -61,6 +64,7 @@
     "show_grok": { "label": "Show Grok" },
     "show_codex": { "label": "Show Codex" },
     "show_agy": { "label": "Show Antigravity" },
-    "show_cursor": { "label": "Show Cursor" }
+    "show_cursor": { "label": "Show Cursor" },
+    "show_opencode": { "label": "Show OpenCode Go" }
   }
 }

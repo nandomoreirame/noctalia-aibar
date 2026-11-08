@@ -50,10 +50,10 @@ describe("translations", function()
 				error("missing translation: " .. key)
 			end
 		end
-		assert.equal(count, 13)
+		assert.equal(count, 14)
 	end)
 	it("names every provider and its errors", function()
-		for _, key in { "provider.codex", "provider.agy", "provider.cursor", "window.quota", "error.codex-login", "error.cursor-login", "error.cursor-sqlite", "error.agy-login", "error.agy-missing" } do
+		for _, key in { "provider.opencode", "error.opencode-login", "error.opencode-expired", "error.opencode-sqlite", "provider.codex", "provider.agy", "provider.cursor", "window.quota", "error.codex-login", "error.cursor-login", "error.cursor-sqlite", "error.agy-login", "error.agy-missing" } do
 			if en[key] == nil then
 				error("missing translation: " .. key)
 			end
@@ -78,7 +78,7 @@ end)
 
 describe("lib purity", function()
 	it("lib modules never touch host globals", function()
-		for _, name in { "accounts", "agy", "claude", "codex", "creds", "cursor", "format", "grok", "notify", "pace", "poll", "present", "time", "view" } do
+		for _, name in { "accounts", "agy", "claude", "codex", "creds", "cursor", "format", "grok", "notify", "opencode", "pace", "poll", "present", "time", "view" } do
 			-- Comments and string literals may name host APIs; only code counts.
 			local source = string.gsub(modules.text("lib/" .. name .. ".luau"), "%-%-[^\n]*", "")
 			source = string.gsub(source, '"[^"\n]*"', '""')

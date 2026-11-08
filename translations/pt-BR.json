@@ -1,6 +1,6 @@
 {
   "title": "AI Bar",
-  "provider": { "claude": "Claude Code", "grok": "Grok", "codex": "Codex", "agy": "Antigravity", "cursor": "Cursor" },
+  "provider": { "claude": "Claude Code", "grok": "Grok", "codex": "Codex", "agy": "Antigravity", "cursor": "Cursor", "opencode": "OpenCode Go" },
   "window": {
     "session": "Sessão (5h)",
     "weekly": "Semanal",
@@ -39,14 +39,17 @@
     "cursor-login": "Sem sessão do Cursor: entre no Cursor",
     "cursor-sqlite": "Instale o sqlite3 para ler a sessão do Cursor",
     "agy-login": "Rode `agy` para entrar",
-    "agy-missing": "CLI do Antigravity (`agy`) não encontrado"
+    "agy-missing": "CLI do Antigravity (`agy`) não encontrado",
+    "opencode-login": "Abra o OpenCode e conecte sua conta do Console",
+    "opencode-expired": "Sessão do OpenCode expirou: abra o OpenCode para renovar",
+    "opencode-sqlite": "Instale o sqlite3 para ler a sessão do OpenCode"
   },
   "format": { "decimal": "," },
   "notify": { "title": "{provider}: {window} em {n}%", "body": "Reinicia em {t}" },
   "settings": {
     "bar_provider": {
       "label": "Provedor na barra",
-      "description": "Fonte exibida na barra: claude, grok, codex, agy, cursor ou claude:<nome da conta>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
+      "description": "Fonte exibida na barra: claude, grok, codex, agy, cursor, opencode ou claude:<nome da conta>. O clique do meio no widget alterna entre as fontes; mudar esta opção substitui essa escolha."
     },
     "poll_minutes": { "label": "Atualizar a cada (minutos)" },
     "notify_threshold": { "label": "Avisar em (%)", "description": "0 desliga os avisos." },
@@ -61,6 +64,7 @@
     "show_grok": { "label": "Mostrar Grok" },
     "show_codex": { "label": "Mostrar Codex" },
     "show_agy": { "label": "Mostrar Antigravity" },
-    "show_cursor": { "label": "Mostrar Cursor" }
+    "show_cursor": { "label": "Mostrar Cursor" },
+    "show_opencode": { "label": "Mostrar OpenCode Go" }
   }
 }

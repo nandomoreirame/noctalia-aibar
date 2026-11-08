@@ -77,8 +77,9 @@ local LOGIN_ERRORS = {
 	["codex-login"] = true,
 	["cursor-login"] = true,
 	["agy-login"] = true,
+	["opencode-login"] = true,
 }
-local AUTH_KEY = { grok = "error.grok-login", codex = "error.codex-login", cursor = "error.cursor-login", agy = "error.agy-login" }
+local AUTH_KEY = { grok = "error.grok-login", codex = "error.codex-login", cursor = "error.cursor-login", agy = "error.agy-login", opencode = "error.opencode-login" }
 
 -- { key, vars? } for a source's request error; nil when there is none. quiet
 -- hides login errors: the CLIs renew their token only when used, so an expired

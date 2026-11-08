@@ -4,7 +4,7 @@ local modules = require("./support/modules")
 
 local describe, it = runner.describe, runner.it
 local accounts = modules.load("lib/accounts.luau")
-local CLAUDE_GROK = { codex = false, agy = false, cursor = false }
+local CLAUDE_GROK = { codex = false, agy = false, cursor = false, opencode = false }
 
 local function keys(list)
 	local out = {}
@@ -64,9 +64,18 @@ describe("accounts.sources", function()
 	end)
 
 	it("lists the other providers in tab order and drops disabled ones", function()
-		assert.deepEqual(keys(accounts.sources(nil)), { "claude", "grok", "codex", "agy", "cursor" })
-		assert.deepEqual(keys(accounts.sources(nil, { grok = false, agy = false })), { "claude", "codex", "cursor" })
-		assert.deepEqual(accounts.sources(nil)[3], { key = "codex", provider = "codex", name = "", dir = "", frozen = false })
+		assert.deepEqual(keys(accounts.sources(nil)), { "opencode", "claude", "grok", "codex", "agy", "cursor" })
+		assert.deepEqual(keys(accounts.sources(nil, { grok = false, agy = false })), { "opencode", "claude", "codex", "cursor" })
+		assert.deepEqual(accounts.sources(nil)[4], { key = "codex", provider = "codex", name = "", dir = "", frozen = false })
+	end)
+end)
+
+describe("OpenCode source priority", function()
+	it("keeps Claude accounts together after OpenCode and cycles in display order", function()
+		local list = accounts.sources(accounts.parseAccounts({ "Work=~/.claude-work" }))
+		assert.deepEqual(keys(list), { "opencode", "claude", "claude:work", "grok", "codex", "agy", "cursor" })
+		assert.equal(accounts.nextKey(list, "opencode"), "claude")
+		assert.equal(accounts.nextKey(list, "cursor"), "opencode")
 	end)
 end)
 

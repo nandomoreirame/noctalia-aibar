@@ -8,7 +8,7 @@ local Present = {}
 
 local FILL = { ok = "primary", ahead = "tertiary", critical = "error" }
 
-local GLYPH = { claude = "asterisk", grok = "brand-x", codex = "brand-openai", agy = "brand-google", cursor = "pointer" }
+local GLYPH = { claude = "asterisk", grok = "brand-x", codex = "brand-openai", agy = "brand-google", cursor = "pointer", opencode = "code" }
 
 local function glyphOf(provider: string): string
 	return GLYPH[provider] or "asterisk"
@@ -190,7 +190,7 @@ function Present.card(entry: any, nowMs: number, tr: any)
 end
 
 -- Short tab labels; the section title keeps the full provider name.
-Present.TAB_LABEL = { claude = "Claude", grok = "Grok", codex = "Codex", agy = "Agy", cursor = "Cursor" }
+Present.TAB_LABEL = { claude = "Claude", grok = "Grok", codex = "Codex", agy = "Agy", cursor = "Cursor", opencode = "OpenCode" }
 
 -- The provider the panel opens on: the bar source's.
 function Present.providerOf(view: any, key: string?): string

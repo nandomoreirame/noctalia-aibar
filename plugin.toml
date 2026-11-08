@@ -5,8 +5,8 @@ plugin_api = 22
 author = "Fernando Moreira Costa"
 license = "MIT"
 icon = "chart-bar"
-description = "Claude Code, Grok, Codex, Antigravity and Cursor plan usage in the bar: percent, reset countdown and a progress bar."
-tags = ["ai", "usage", "claude", "grok", "codex", "antigravity", "cursor"]
+description = "Claude, Grok, Codex, Antigravity, Cursor and OpenCode Go usage with reset countdowns."
+tags = ["ai", "usage", "claude", "grok", "codex", "antigravity", "cursor", "opencode"]
 dependencies = []
 
 [[setting]]
@@ -70,6 +70,12 @@ default = true
 key = "show_cursor"
 type = "bool"
 label_key = "settings.show_cursor.label"
+default = true
+
+[[setting]]
+key = "show_opencode"
+type = "bool"
+label_key = "settings.show_opencode.label"
 default = true
 
 [[service]]

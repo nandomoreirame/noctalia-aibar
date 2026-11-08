@@ -11,6 +11,7 @@ local cursor = require("./lib/cursor.luau")
 local format = require("./lib/format.luau")
 local grok = require("./lib/grok.luau")
 local notify = require("./lib/notify.luau")
+local opencode = require("./lib/opencode.luau")
 local poll = require("./lib/poll.luau")
 local present = require("./lib/present.luau")
 local view = require("./lib/view.luau")
@@ -180,6 +181,44 @@ pollers.claude = function(source: any, current: any, t: number)
 	}, function(data)
 		return claude.parseUsage(data, plan, now())
 	end)
+end
+
+pollers.opencode = function(source: any, current: any, t: number)
+	local function fetch(cred: any)
+		if not cred.ok then
+			applyResult(source, cred.error, 0, nil)
+			return
+		end
+		local headers = {
+			"Authorization: Bearer " .. cred.key,
+			"Accept: application/json",
+			"User-Agent: " .. opencode.USER_AGENT,
+		}
+		if cred.orgId ~= nil and cred.orgId ~= "" then
+			table.insert(headers, "x-org-id: " .. cred.orgId)
+		end
+		request(source, opencode.API_URL, headers, function(data)
+			return opencode.parseUsage(data, now())
+		end)
+	end
+	-- v2 stores browser sign-ins in SQLite, not the retired auth.json. Poll
+	-- it on the regular schedule, not on DB/WAL writes from every model step.
+	if noctalia.fileInfo(opencode.DB_PATH) ~= nil then
+		if not noctalia.commandExists("sqlite3") then
+			states[source.key] = poll.fail(current, "opencode-sqlite", 0, t)
+			return
+		end
+		command(source, opencode.credentialArgv(noctalia.expandPath(opencode.DB_PATH)), function(res)
+			if typeof(res) ~= "table" or res.exitCode ~= 0 or res.timedOut == true or res.stdoutTruncated == true then
+				applyResult(source, "opencode-login", 0, nil)
+				return
+			end
+			local decoded, data = pcall(noctalia.json.decode, res.stdout or "")
+			fetch(creds.opencodeSession(if decoded then data else nil, now()))
+		end)
+		return
+	end
+	fetch(creds.opencodeKey(decodeFile(accounts.credPath(source))))
 end
 
 pollers.codex = function(source: any, current: any, t: number)

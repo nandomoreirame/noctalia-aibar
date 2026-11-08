@@ -52,4 +52,34 @@ function Creds.codexToken(data: any)
 	return { ok = true, token = t.access_token, accountId = if typeof(t.account_id) == "string" then t.account_id else "" }
 end
 
+-- OpenCode's own credential file. Never use another provider's key as fallback.
+function Creds.opencodeKey(data: any)
+	local entry = if typeof(data) == "table" then data["opencode-go"] else nil
+	if typeof(entry) ~= "table" or entry.type ~= "api" or typeof(entry.key) ~= "string" or entry.key == "" or string.find(entry.key, "[%s%c]") then
+		return { ok = false, error = "opencode-login" }
+	end
+	return { ok = true, key = entry.key }
+end
+
+-- Decoded selected credential.value from OpenCode v2's SQLite database.
+function Creds.opencodeSession(data: any, nowMs: number)
+	if typeof(data) ~= "table" then
+		return { ok = false, error = "opencode-login" }
+	end
+	local token = if data.type == "oauth" then data.access elseif data.type == "key" or data.type == "api" then data.key else nil
+	local metadata = if typeof(data.metadata) == "table" then data.metadata else {}
+	local orgId = metadata.orgID or ""
+	if typeof(token) ~= "string" or token == "" or string.find(token, "[%s%c]") or typeof(orgId) ~= "string" or string.find(orgId, "[%s%c]") then
+		return { ok = false, error = "opencode-login" }
+	end
+	-- A custom Console credential must never be sent to the public service.
+	if metadata.server ~= nil and metadata.server ~= "https://opencode.ai/console" and metadata.server ~= "https://console.opencode.ai" then
+		return { ok = false, error = "opencode-login" }
+	end
+	if data.type == "oauth" and (typeof(data.expires) ~= "number" or not (data.expires > nowMs + Creds.EXPIRY_MARGIN_MS)) then
+		return { ok = false, error = "opencode-expired" }
+	end
+	return { ok = true, key = token, orgId = orgId }
+end
+
 return Creds
